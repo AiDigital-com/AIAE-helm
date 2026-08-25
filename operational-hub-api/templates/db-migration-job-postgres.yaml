@@ -1,4 +1,20 @@
 {{- if .Values.liquibase.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "operational-hub-api.name" . }}-liquibase
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "operational-hub-api.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database-migration
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-15"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    {{- with .Values.serviceAccount.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -7,8 +23,8 @@ metadata:
   labels:
     {{- include "operational-hub-api.labels" . | nindent 4 }}
   annotations:
-    argocd.argoproj.io/hook: Sync
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-4"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   activeDeadlineSeconds: {{ .Values.liquibase.activeDeadlineSeconds }}
@@ -20,7 +36,7 @@ spec:
         app.kubernetes.io/component: database-migration
     spec:
       restartPolicy: Never
-      serviceAccountName: {{ include "operational-hub-api.name" . }}
+      serviceAccountName: {{ include "operational-hub-api.name" . }}-liquibase
       containers:
         - name: liquibase
           image: "{{ .Values.liquibase.image.repository }}:{{ .Values.liquibase.image.tag }}"
