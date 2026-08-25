@@ -4,6 +4,8 @@ metadata:
   name: {{ .Values.appProject }}-{{ .Values.env }}
   namespace: {{ .Values.const.argoNamespace }}
 spec:
+  sourceNamespaces:
+    - {{ .Values.const.argoNamespace }}
   destinations:
     - namespace: {{ .Values.destination.namespace }}
       server: {{ .Values.destination.server | quote }}
