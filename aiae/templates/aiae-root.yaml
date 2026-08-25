@@ -9,6 +9,8 @@ spec:
   destinations:
     - namespace: {{ .Values.destination.namespace }}
       server: {{ .Values.destination.server | quote }}
+    - namespace: {{ .Values.const.argoNamespace }}
+      server: {{ .Values.destination.server | quote }}
   sourceRepos:
     - {{ .Values.source.helmRepositoryUrl | quote }}
     - {{ .Values.source.versionsRepositoryUrl | quote }}
