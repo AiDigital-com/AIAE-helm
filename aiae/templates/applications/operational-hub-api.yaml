@@ -1,0 +1,73 @@
+{{- if .Values.services.operationalHubApi.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: operational-hub-api-{{ .Values.env }}
+  namespace: {{ .Values.const.argoNamespace }}
+  finalizers:
+    - {{ .Values.const.finalizer }}
+spec:
+  project: {{ .Values.appProject }}-{{ .Values.env }}
+  destination:
+    server: {{ .Values.destination.server | quote }}
+    namespace: {{ .Values.destination.namespace }}
+  sources:
+    - repoURL: {{ .Values.source.helmRepositoryUrl | quote }}
+      targetRevision: {{ .Values.source.chartRevision | quote }}
+      path: operational-hub-api
+      helm:
+        parameters:
+          - name: environment
+            value: {{ .Values.env | quote }}
+          - name: namespace
+            value: {{ .Values.destination.namespace | quote }}
+          - name: image.repository
+            value: {{ .Values.services.operationalHubApi.imageRepository | quote }}
+          - name: liquibase.image.repository
+            value: {{ .Values.services.operationalHubApi.liquibaseImageRepository | quote }}
+          - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
+            value: {{ .Values.services.operationalHubApi.iamRoleArn | quote }}
+          - name: secretsManager.awsSecretName
+            value: {{ .Values.services.operationalHubApi.secretName | quote }}
+          - name: replicaCount
+            value: {{ .Values.services.operationalHubApi.replicaCount | quote }}
+          - name: autoscaling.minReplicas
+            value: {{ .Values.services.operationalHubApi.minReplicas | quote }}
+          - name: autoscaling.maxReplicas
+            value: {{ .Values.services.operationalHubApi.maxReplicas | quote }}
+          - name: ingress.enabled
+            value: "true"
+          - name: ingress.hosts[0].host
+            value: {{ .Values.services.operationalHubApi.host | quote }}
+          - name: ingress.hosts[0].paths[0].path
+            value: /api
+          - name: ingress.hosts[0].paths[0].pathType
+            value: Prefix
+          - name: ingress.hosts[0].paths[1].path
+            value: /actuator/health
+          - name: ingress.hosts[0].paths[1].pathType
+            value: Prefix
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/scheme
+            value: internet-facing
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/target-type
+            value: ip
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/listen-ports
+            value: '[{"HTTPS":443}]'
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/healthcheck-path
+            value: /actuator/health/readiness
+          {{- range $name, $value := .Values.services.operationalHubApi.config }}
+          - name: config.{{ $name }}
+            value: {{ $value | quote }}
+          {{- end }}
+        valueFiles:
+          - $versions/operational-hub-api/values.yaml
+    - repoURL: {{ .Values.source.versionsRepositoryUrl | quote }}
+      targetRevision: {{ .Values.source.operationalHubVersionsRevision | quote }}
+      ref: versions
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}
