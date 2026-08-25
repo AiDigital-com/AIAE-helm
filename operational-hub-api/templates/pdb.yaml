@@ -2,13 +2,13 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "java-service.name" . }}
+  name: {{ include "operational-hub-api.name" . }}
   namespace: {{ .Values.namespace }}
   labels:
-    {{- include "java-service.labels" . | nindent 4 }}
+    {{- include "operational-hub-api.labels" . | nindent 4 }}
 spec:
   minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
   selector:
     matchLabels:
-      {{- include "java-service.selectorLabels" . | nindent 6 }}
+      {{- include "operational-hub-api.selectorLabels" . | nindent 6 }}
 {{- end }}

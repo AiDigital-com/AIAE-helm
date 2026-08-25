@@ -1,12 +1,13 @@
 # AIAE Helm
 
-Reusable Helm charts for AIAE services. Operational Hub is the first deployed
-service.
+Feedlot-style app-of-apps repository for AIAE services.
 
-Branches:
+Branch ownership:
 
-- dev - development chart/app manifests
-- prod - production chart/app manifests
+- `main` contains deployable service charts such as `operational-hub-api`.
+- `dev` contains the development root chart and environment configuration.
+- `prod` contains the production root chart and environment configuration.
 
-Argo CD reads `charts/java-service` from this repository and values from the
-matching branch in `AIAE-helm-versions`.
+Argo CD starts from the `aiae` root chart on the environment branch. That root
+creates one child Application per service and pins both the service chart and
+the matching commit from `AIAE-helm-versions`.

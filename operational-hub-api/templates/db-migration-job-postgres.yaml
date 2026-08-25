@@ -1,0 +1,48 @@
+{{- if .Values.liquibase.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "operational-hub-api.name" . }}-liquibase-{{ default "bootstrap" .Values.liquibase.image.tag | trunc 20 | trimSuffix "-" }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "operational-hub-api.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  activeDeadlineSeconds: {{ .Values.liquibase.activeDeadlineSeconds }}
+  backoffLimit: {{ .Values.liquibase.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "operational-hub-api.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: database-migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "operational-hub-api.name" . }}
+      containers:
+        - name: liquibase
+          image: "{{ .Values.liquibase.image.repository }}:{{ .Values.liquibase.image.tag }}"
+          imagePullPolicy: {{ .Values.liquibase.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - >-
+              exec mvn -f backend/pom.xml -pl db liquibase:update -B
+              -Dliquibase.url="jdbc:postgresql://$(cat /mnt/secrets-store/POSTGRES_HOST):$(cat /mnt/secrets-store/POSTGRES_PORT)/$(cat /mnt/secrets-store/POSTGRES_DB)"
+              -Dliquibase.username="$(cat /mnt/secrets-store/POSTGRES_USER)"
+              -Dliquibase.password="$(cat /mnt/secrets-store/POSTGRES_PASSWORD)"
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets-store
+              readOnly: true
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ include "operational-hub-api.name" . }}-spc
+{{- end }}

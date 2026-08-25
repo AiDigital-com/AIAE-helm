@@ -2,17 +2,17 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "java-service.name" . }}
+  name: {{ include "operational-hub-api.name" . }}
   namespace: {{ .Values.namespace }}
   labels:
-    {{- include "java-service.labels" . | nindent 4 }}
+    {{- include "operational-hub-api.labels" . | nindent 4 }}
 spec:
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "java-service.name" . }}
+    name: {{ include "operational-hub-api.name" . }}
   metrics:
     - type: Resource
       resource:

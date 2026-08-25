@@ -1,0 +1,6 @@
+apiVersion: v2
+name: operational-hub-api
+description: Operational Hub API deployment for AWS EKS GitOps
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

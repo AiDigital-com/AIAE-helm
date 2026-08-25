@@ -1,10 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "java-service.name" . }}
+  name: {{ include "operational-hub-api.name" . }}
   namespace: {{ .Values.namespace }}
   labels:
-    {{- include "java-service.labels" . | nindent 4 }}
+    {{- include "operational-hub-api.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -14,13 +16,13 @@ spec:
     {{- toYaml .Values.strategy | nindent 4 }}
   selector:
     matchLabels:
-      {{- include "java-service.selectorLabels" . | nindent 6 }}
+      {{- include "operational-hub-api.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "java-service.selectorLabels" . | nindent 8 }}
+        {{- include "operational-hub-api.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: {{ include "java-service.name" . }}
+      serviceAccountName: {{ include "operational-hub-api.name" . }}
       containers:
         - name: app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -31,13 +33,13 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: {{ include "java-service.name" . }}-config
+                name: {{ include "operational-hub-api.name" . }}-config
           env:
             {{- range $name, $secretKey := .Values.secretEnv }}
             - name: {{ $name }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "java-service.secretName" $ }}
+                  name: {{ include "operational-hub-api.secretName" $ }}
                   key: {{ $secretKey }}
             {{- end }}
           startupProbe:
@@ -76,5 +78,5 @@ spec:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: {{ include "java-service.name" . }}-spc
+              secretProviderClass: {{ include "operational-hub-api.name" . }}-spc
       {{- end }}
