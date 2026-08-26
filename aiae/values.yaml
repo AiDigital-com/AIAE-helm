@@ -27,10 +27,10 @@ services:
       PORT: "5000"
       MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
       AUTH_ALLOWED_EMAIL_DOMAIN: aidigital.com
-      AUTH_AUTHORIZED_PARTIES: "https://dev.aiae-operational-hub.aidigital.tech"
+      AUTH_AUTHORIZED_PARTIES: "https://dfjozbcz9mj59.cloudfront.net,https://dev.aiae-operational-hub.aidigital.tech"
       CLERK_PUBLISHABLE_KEY: pk_test_bGl2aW5nLWluc2VjdC02MC5jbGVyay5hY2NvdW50cy5kZXYk
-      OPH_SECURITY_CORS_ALLOWED_ORIGINS: "https://dev.aiae-operational-hub.aidigital.tech"
-      OPH_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://dev.aiae-operational-hub.aidigital.tech"
+      OPH_SECURITY_CORS_ALLOWED_ORIGINS: "https://dfjozbcz9mj59.cloudfront.net,https://dev.aiae-operational-hub.aidigital.tech"
+      OPH_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://dfjozbcz9mj59.cloudfront.net https://dev.aiae-operational-hub.aidigital.tech"
       BIGQUERY_ENABLED: "true"
       BIGQUERY_PROJECT_ID: aiae-493511
       BIGQUERY_STUB_ENABLED: "false"
