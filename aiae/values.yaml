@@ -9,7 +9,7 @@ destination:
 source:
   helmRepositoryUrl: ""
   versionsRepositoryUrl: ""
-  chartRevision: "e62d9436340f981c1de3e4e36e9c18f5c97b2757"
+  chartRevision: "aabe377a87d6fc90fec33a17d07b2dd7d0c473e8"
   operationalHubVersionsRevision: "59b50aabfb0403190f64781650b957830a3b5341"
 services:
   operationalHubApi:
