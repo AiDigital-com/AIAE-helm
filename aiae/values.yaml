@@ -1,20 +1,16 @@
 env: dev
 appProject: aiae-operational-hub
-
 const:
   argoNamespace: argocd
   finalizer: resources-finalizer.argocd.argoproj.io
-
 destination:
   server: ""
   namespace: aiae-operational-hub-dev
-
 source:
   helmRepositoryUrl: ""
   versionsRepositoryUrl: ""
   chartRevision: "e62d9436340f981c1de3e4e36e9c18f5c97b2757"
-  operationalHubVersionsRevision: "dd07481c64b846fae1fa087a328b50be6e3c6a75"
-
+  operationalHubVersionsRevision: "59b50aabfb0403190f64781650b957830a3b5341"
 services:
   operationalHubApi:
     enabled: true
