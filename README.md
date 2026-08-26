@@ -1,6 +1,6 @@
 # AIAE Helm
 
-Feedlot-style app-of-apps repository for AIAE services.
+App-of-apps repository for AIAE services.
 
 Branch ownership:
 

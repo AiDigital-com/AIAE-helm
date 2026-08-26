@@ -1,6 +1,6 @@
 nameOverride: operational-hub-api
 environment: dev
-namespace: aiae-operational-hub-dev
+namespace: aiae-dev
 
 image:
   repository: ""
