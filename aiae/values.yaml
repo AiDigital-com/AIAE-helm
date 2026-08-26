@@ -1,15 +1,15 @@
 env: dev
-appProject: aiae-operational-hub
+appProject: aiae
 const:
   argoNamespace: argocd
   finalizer: resources-finalizer.argocd.argoproj.io
 destination:
   server: ""
-  namespace: aiae-operational-hub-dev
+  namespace: aiae-dev
 source:
   helmRepositoryUrl: ""
   versionsRepositoryUrl: ""
-  chartRevision: "aabe377a87d6fc90fec33a17d07b2dd7d0c473e8"
+  chartRevision: "190c06c4e3666647d64cf4c51fad95054e2f03a2"
   operationalHubVersionsRevision: "59b50aabfb0403190f64781650b957830a3b5341"
 services:
   operationalHubApi:
@@ -18,20 +18,19 @@ services:
     liquibaseImageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/operational-hub-application
     iamRoleArn: arn:aws:iam::496336474487:role/aiae-operational-hub-dev-application
     secretName: AIAE-DEV/operational-hub
-    host: dev.aiae-operational-hub.aidigital.tech
+    host: ""
     replicaCount: 1
     minReplicas: 1
     maxReplicas: 1
     config:
-      SPRING_PROFILES_ACTIVE: replit
-      SPRING_LIQUIBASE_ENABLED: "false"
+      SPRING_PROFILES_ACTIVE: eks
       PORT: "5000"
       MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
       AUTH_ALLOWED_EMAIL_DOMAIN: aidigital.com
-      AUTH_AUTHORIZED_PARTIES: "https://1fae4737-1001-4c87-b86a-e6c8de2a96a0-00-vkdhsp6p2d5t.kirk.replit.dev,http://localhost:5173,http://localhost:5000,https://1fae4737-1001-4c87-b86a-e6c8de2a96a0-00-vkdhsp6p2d5t.kirk.replit.dev:5173,https://dev.aiae-operational-hub.aidigital.tech"
+      AUTH_AUTHORIZED_PARTIES: "https://dev.aiae-operational-hub.aidigital.tech"
       CLERK_PUBLISHABLE_KEY: pk_test_bGl2aW5nLWluc2VjdC02MC5jbGVyay5hY2NvdW50cy5kZXYk
-      OPH_SECURITY_CORS_ALLOWED_ORIGINS: "https://1fae4737-1001-4c87-b86a-e6c8de2a96a0-00-vkdhsp6p2d5t.kirk.replit.dev,http://localhost:5173,http://localhost:5000,https://1fae4737-1001-4c87-b86a-e6c8de2a96a0-00-vkdhsp6p2d5t.kirk.replit.dev:5173,https://dev.aiae-operational-hub.aidigital.tech"
-      OPH_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://*.replit.dev https://dev.aiae-operational-hub.aidigital.tech"
+      OPH_SECURITY_CORS_ALLOWED_ORIGINS: "https://dev.aiae-operational-hub.aidigital.tech"
+      OPH_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://dev.aiae-operational-hub.aidigital.tech"
       BIGQUERY_ENABLED: "true"
       BIGQUERY_PROJECT_ID: aiae-493511
       BIGQUERY_STUB_ENABLED: "false"

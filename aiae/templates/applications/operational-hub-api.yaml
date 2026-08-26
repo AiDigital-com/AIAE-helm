@@ -52,7 +52,7 @@ spec:
           - name: ingress.annotations.alb\.ingress\.kubernetes\.io/target-type
             value: ip
           - name: ingress.annotations.alb\.ingress\.kubernetes\.io/listen-ports
-            value: '[{"HTTPS":443}]'
+            value: '[{"HTTP":80}]'
           - name: ingress.annotations.alb\.ingress\.kubernetes\.io/healthcheck-path
             value: /actuator/health/readiness
           {{- range $name, $value := .Values.services.operationalHubApi.config }}
