@@ -6,8 +6,9 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "operational-hub-api.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
