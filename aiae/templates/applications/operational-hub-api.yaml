@@ -7,7 +7,7 @@ metadata:
   finalizers:
     - {{ .Values.const.finalizer }}
 spec:
-  project: {{ .Values.appProject }}
+  project: {{ .Values.appProject }}-{{ .Values.env }}
   destination:
     server: {{ .Values.destination.server | quote }}
     namespace: {{ .Values.destination.namespace }}

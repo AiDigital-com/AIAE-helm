@@ -1,5 +1,5 @@
 env: prod
-appProject: aiae-prod
+appProject: aiae
 const:
   argoNamespace: argocd
   finalizer: resources-finalizer.argocd.argoproj.io
