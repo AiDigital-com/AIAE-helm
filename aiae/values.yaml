@@ -10,7 +10,7 @@ source:
   helmRepositoryUrl: ""
   versionsRepositoryUrl: ""
   chartRevision: "5480b8bca8d0562eba8a198170830c957b603eab"
-  operationalHubVersionsRevision: "77d1bff7cd98669d201ae5bdb28d19f261518b2a"
+  operationalHubVersionsRevision: "4900c34dd5cb4cf518d526dc2a488bfd7b1c3ec3"
 services:
   operationalHubApi:
     enabled: true
