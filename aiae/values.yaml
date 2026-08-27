@@ -40,4 +40,3 @@ services:
       BIGQUERY_LOCATION: US
       BIGQUERY_DATASET: netsuite
       USAGE_LOG_ENVIRONMENT: prod
-      LOGBOOK_LEVEL: INFO
