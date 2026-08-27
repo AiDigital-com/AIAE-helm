@@ -21,6 +21,7 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        aiae.aidigital.tech/deployment-revision: {{ .Values.deploymentRevision | quote }}
       labels:
         {{- include "operational-hub-api.selectorLabels" . | nindent 8 }}
     spec:

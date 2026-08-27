@@ -26,11 +26,14 @@ metadata:
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/sync-wave: "-4"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    aiae.aidigital.tech/deployment-revision: {{ .Values.deploymentRevision | quote }}
 spec:
   activeDeadlineSeconds: {{ .Values.liquibase.activeDeadlineSeconds }}
   backoffLimit: {{ .Values.liquibase.backoffLimit }}
   template:
     metadata:
+      annotations:
+        aiae.aidigital.tech/deployment-revision: {{ .Values.deploymentRevision | quote }}
       labels:
         {{- include "operational-hub-api.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: database-migration
