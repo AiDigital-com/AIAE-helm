@@ -12,7 +12,7 @@ destination:
 source:
   helmRepositoryUrl: ""
   versionsRepositoryUrl: ""
-  chartRevision: "e62d9436340f981c1de3e4e36e9c18f5c97b2757"
+  chartRevision: "5480b8bca8d0562eba8a198170830c957b603eab"
   operationalHubVersionsRevision: "dd07481c64b846fae1fa087a328b50be6e3c6a75"
 
 services:
@@ -32,7 +32,6 @@ services:
       MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
       AUTH_ALLOWED_EMAIL_DOMAIN: aidigital.com
       AUTH_AUTHORIZED_PARTIES: https://aiae-operational-hub.aidigital.tech
-      CLERK_PUBLISHABLE_KEY: pk_live_Y2xlcmsuYWlkaWdpdGFsLnRlY2gk
       OPH_SECURITY_CORS_ALLOWED_ORIGINS: https://aiae-operational-hub.aidigital.tech
       OPH_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://aiae-operational-hub.aidigital.tech"
       BIGQUERY_ENABLED: "true"
