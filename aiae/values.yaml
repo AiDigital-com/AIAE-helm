@@ -1,5 +1,5 @@
 env: prod
-appProject: aiae-operational-hub
+appProject: aiae-prod
 
 const:
   argoNamespace: argocd
@@ -7,7 +7,7 @@ const:
 
 destination:
   server: ""
-  namespace: aiae-operational-hub-prod
+  namespace: aiae-prod
 
 source:
   helmRepositoryUrl: ""
@@ -22,7 +22,7 @@ services:
     liquibaseImageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/operational-hub-application
     iamRoleArn: arn:aws:iam::125093118532:role/aiae-operational-hub-prod-application
     secretName: AIAE-PRD/operational-hub
-    host: aiae-operational-hub.aidigital.tech
+    host: ""
     replicaCount: 2
     minReplicas: 2
     maxReplicas: 10
