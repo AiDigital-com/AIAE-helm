@@ -11,6 +11,11 @@ source:
   versionsRepositoryUrl: ""
   chartRevision: "5480b8bca8d0562eba8a198170830c957b603eab"
   operationalHubVersionsRevision: "4d6ec9e17e5dae0f778728d7e86bc310c1426af5"
+  # Chart revision this application was tested against. Separate from
+  # chartRevision so Operational Hub's pin is never moved by this application.
+  aiaeOnboardingChartRevision: "ce691639f6b09441e6c0c8e29e91ac174523ba88"
+  # Updated by the AIAE-onboarding-platform DEV workflow on every deployment.
+  aiaeOnboardingVersionsRevision: "REPLACED_BY_FIRST_WORKFLOW_RUN"
 services:
   operationalHubApi:
     enabled: true
@@ -35,4 +40,52 @@ services:
       BIGQUERY_STUB_ENABLED: "false"
       BIGQUERY_LOCATION: US
       BIGQUERY_DATASET: netsuite
+      USAGE_LOG_ENVIRONMENT: dev
+  aiaeOnboardingApi:
+    # Stays false until the first DEV workflow run publishes real image tags and
+    # repins aiaeOnboardingVersionsRevision. Enabling it against the bootstrap
+    # placeholder tags would only produce ImagePullBackOff.
+    enabled: false
+    imageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
+    liquibaseImageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
+    iamRoleArn: arn:aws:iam::496336474487:role/aiae-onboarding-dev-application
+    secretName: AIAE-DEV/aiae-onboarding
+    host: ""
+    replicaCount: 1
+    minReplicas: 1
+    maxReplicas: 1
+    podDisruptionBudgetEnabled: false
+    config:
+      SPRING_PROFILES_ACTIVE: eks
+      PORT: "5000"
+      MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
+      APP_SERVICE_NAME: aiae-onboarding
+      # Matched EXACTLY against the JWT azp claim (ClerkJwtClaimsValidator uses
+      # List.contains, no wildcards). This is the generated CloudFront domain,
+      # which is the DEV product URL.
+      AUTH_AUTHORIZED_PARTIES: "https://d1tyi0qe1x4bft.cloudfront.net"
+      AUTH_ALLOWED_EMAIL_DOMAIN: aidigital.com
+      APP_SECURITY_CORS_ALLOWED_ORIGINS: "https://d1tyi0qe1x4bft.cloudfront.net"
+      APP_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://d1tyi0qe1x4bft.cloudfront.net"
+      # Object storage authenticates through IRSA: ACCESS_KEY_ID and
+      # SECRET_ACCESS_KEY are deliberately absent so the AWS SDK default
+      # provider chain resolves the projected web-identity token.
+      STORAGE_ENABLED: "true"
+      REGION: us-east-1
+      BUCKET: aiae-onboarding-dev-materials-496336474487
+      # Real AWS S3 uses virtual-hosted-style addressing; path style is only for
+      # S3-compatible third parties and is deprecated by AWS.
+      STORAGE_FORCE_PATH_STYLE: "false"
+      # DEV signs downloads with plain S3 presigned GETs, so no CloudFront key
+      # group or private key is needed. Presigned URLs are signed with the pod's
+      # temporary IRSA credentials and cannot outlive that session, hence one
+      # hour rather than the 24-hour application default.
+      CLOUDFRONT_ENABLED: "false"
+      STORAGE_PRESIGN_GET_EXPIRES_SECONDS: "3600"
+      OPENAI_ENABLED: "true"
+      YOUTUBE_ENABLED: "true"
+      # db.t4g.small has a small max_connections budget shared with the
+      # migration Job; the application default of 50 is sized for PROD.
+      DB_MAX_POOL_SIZE: "10"
+      USAGE_LOG_SERVICE_NAME: aiae-onboarding
       USAGE_LOG_ENVIRONMENT: dev
