@@ -42,10 +42,7 @@ services:
       BIGQUERY_DATASET: netsuite
       USAGE_LOG_ENVIRONMENT: dev
   aiaeOnboardingApi:
-    # Stays false until the first DEV workflow run publishes real image tags and
-    # repins aiaeOnboardingVersionsRevision. Enabling it against the bootstrap
-    # placeholder tags would only produce ImagePullBackOff.
-    enabled: false
+    enabled: true
     imageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
     liquibaseImageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
     iamRoleArn: arn:aws:iam::496336474487:role/aiae-onboarding-dev-application
