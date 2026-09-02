@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aiae-onboarding-api.name" . }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "aiae-onboarding-api.labels" . | nindent 4 }}
+data:
+  {{- range $name, $value := .Values.config }}
+  {{ $name }}: {{ $value | quote }}
+  {{- end }}

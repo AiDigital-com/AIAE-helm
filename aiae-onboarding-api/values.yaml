@@ -1,0 +1,101 @@
+nameOverride: aiae-onboarding-api
+environment: dev
+namespace: aiae-dev
+deploymentRevision: ""
+
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+containerPort: 5000
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+config:
+  SPRING_PROFILES_ACTIVE: eks
+  PORT: "5000"
+  MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
+
+# CLERK_SECRET_KEY is deliberately absent: this backend validates Clerk JWTs
+# against the JWKS derived from the publishable key and never calls the Clerk
+# backend API. Projecting an unused secret would widen the blast radius for
+# nothing. GOOGLE_SERVICE_ACCOUNT_JSON belongs to Operational Hub's BigQuery
+# integration, which this application does not have.
+secretEnv:
+  POSTGRES_HOST: POSTGRES_HOST
+  POSTGRES_PORT: POSTGRES_PORT
+  POSTGRES_DB: POSTGRES_DB
+  POSTGRES_USER: POSTGRES_USER
+  POSTGRES_PASSWORD: POSTGRES_PASSWORD
+  CLERK_PUBLISHABLE_KEY: CLERK_PUBLISHABLE_KEY
+  OPENAI_API_KEY: OPENAI_API_KEY
+
+secretsManager:
+  enabled: true
+  awsSecretName: ""
+  keys:
+    - POSTGRES_HOST
+    - POSTGRES_PORT
+    - POSTGRES_DB
+    - POSTGRES_USER
+    - POSTGRES_PASSWORD
+    - CLERK_PUBLISHABLE_KEY
+    - OPENAI_API_KEY
+
+liquibase:
+  enabled: true
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+  activeDeadlineSeconds: 900
+  backoffLimit: 1
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 65
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+probes:
+  startupPath: /actuator/health/readiness
+  livenessPath: /actuator/health/liveness
+  readinessPath: /actuator/health/readiness
+  startupFailureThreshold: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+ingress:
+  enabled: false
+  className: alb
+  annotations: {}
+  hosts: []
+  tls: []
