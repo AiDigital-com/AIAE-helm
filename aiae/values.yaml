@@ -42,11 +42,7 @@ services:
       BIGQUERY_DATASET: netsuite
       USAGE_LOG_ENVIRONMENT: prod
   aiaeOnboardingApi:
-    # Stays false until release-prod.yml has published real production image
-    # tags and repinned aiaeOnboardingVersionsRevision, and until the migrated
-    # data has been restored and validated. Enabling it earlier would start the
-    # application against an empty database.
-    enabled: false
+    enabled: true
     imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
     liquibaseImageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
     iamRoleArn: arn:aws:iam::125093118532:role/aiae-onboarding-prod-application
