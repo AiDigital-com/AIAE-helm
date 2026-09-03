@@ -15,7 +15,7 @@ source:
   # chartRevision so Operational Hub's pin is never moved by this application.
   aiaeOnboardingChartRevision: "ce691639f6b09441e6c0c8e29e91ac174523ba88"
   # Updated by release-prod.yml on every production release.
-  aiaeOnboardingVersionsRevision: "REPLACED_BY_FIRST_PROD_RELEASE"
+  aiaeOnboardingVersionsRevision: "bd6ecd43b9af24dbb2fa4dd5e6ae3dceacf50608"
 services:
   operationalHubApi:
     enabled: true
