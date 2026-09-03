@@ -11,6 +11,11 @@ source:
   versionsRepositoryUrl: ""
   chartRevision: "5480b8bca8d0562eba8a198170830c957b603eab"
   operationalHubVersionsRevision: "ab906f4b9c921717968dc9ee195a8ac6878d0896"
+  # Chart revision this application was tested against. Separate from
+  # chartRevision so Operational Hub's pin is never moved by this application.
+  aiaeOnboardingChartRevision: "ce691639f6b09441e6c0c8e29e91ac174523ba88"
+  # Updated by release-prod.yml on every production release.
+  aiaeOnboardingVersionsRevision: "REPLACED_BY_FIRST_PROD_RELEASE"
 services:
   operationalHubApi:
     enabled: true
@@ -35,4 +40,61 @@ services:
       BIGQUERY_STUB_ENABLED: "false"
       BIGQUERY_LOCATION: US
       BIGQUERY_DATASET: netsuite
+      USAGE_LOG_ENVIRONMENT: prod
+  aiaeOnboardingApi:
+    # Stays false until release-prod.yml has published real production image
+    # tags and repinned aiaeOnboardingVersionsRevision, and until the migrated
+    # data has been restored and validated. Enabling it earlier would start the
+    # application against an empty database.
+    enabled: false
+    imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
+    liquibaseImageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
+    iamRoleArn: arn:aws:iam::125093118532:role/aiae-onboarding-prod-application
+    secretName: AIAE-PRD/aiae-onboarding
+    host: ""
+    # Chart defaults are already production-shaped (2 replicas, HPA 2-10,
+    # PodDisruptionBudget enabled). Passed explicitly to match Operational Hub
+    # and so the values file states the intent rather than implying it.
+    #
+    # Note: the HPA will not actually scale. No metrics-server is installed in
+    # either cluster, so metrics.k8s.io is unavailable and every HPA in this
+    # environment reports unknown targets. Operational Hub has the same gap.
+    # The deployment therefore holds at 2 replicas under any load.
+    replicaCount: 2
+    minReplicas: 2
+    maxReplicas: 10
+    config:
+      SPRING_PROFILES_ACTIVE: eks
+      PORT: "5000"
+      MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
+      APP_SERVICE_NAME: aiae-onboarding
+      # Matched EXACTLY against the JWT azp claim (ClerkJwtClaimsValidator uses
+      # List.contains, no wildcards). The production Clerk instance is bound to
+      # aidigital.tech, so this hostname is also the only origin login works on.
+      AUTH_AUTHORIZED_PARTIES: "https://aiae-onboarding.aidigital.tech"
+      AUTH_ALLOWED_EMAIL_DOMAIN: aidigital.com
+      APP_SECURITY_CORS_ALLOWED_ORIGINS: "https://aiae-onboarding.aidigital.tech"
+      APP_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://aiae-onboarding.aidigital.tech"
+      # Object storage authenticates through IRSA: ACCESS_KEY_ID and
+      # SECRET_ACCESS_KEY are deliberately absent so the AWS SDK default
+      # provider chain resolves the projected web-identity token.
+      STORAGE_ENABLED: "true"
+      REGION: us-east-1
+      BUCKET: aiae-onboarding-prod-materials-125093118532
+      STORAGE_FORCE_PATH_STYLE: "false"
+      # Plain S3 presigned GETs for the first production cut, matching what was
+      # verified end to end in DEV. The Replit deployment served media through
+      # a CloudFront key group instead; that can be added later without
+      # downtime by creating the distribution and flipping these three values.
+      #
+      # Trade-off accepted knowingly: the migrated content includes a 152 MB
+      # .mov, two 94/91 MB .mp4 and two 83 MB .gif embedded in lessons, which a
+      # CDN would cache at the edge and S3 will re-transmit on every view.
+      CLOUDFRONT_ENABLED: "false"
+      # Presigned URLs are signed with the pod's temporary IRSA credentials and
+      # cannot outlive that session, whatever the URL's own expiry claims.
+      STORAGE_PRESIGN_GET_EXPIRES_SECONDS: "3600"
+      OPENAI_ENABLED: "true"
+      YOUTUBE_ENABLED: "true"
+      USAGE_LOG_SERVICE_NAME: aiae-onboarding
       USAGE_LOG_ENVIRONMENT: prod

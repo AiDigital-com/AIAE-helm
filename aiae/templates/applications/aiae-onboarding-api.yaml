@@ -1,0 +1,77 @@
+{{- if .Values.services.aiaeOnboardingApi.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aiae-onboarding-api-{{ .Values.env }}
+  namespace: {{ .Values.const.argoNamespace }}
+  finalizers:
+    - {{ .Values.const.finalizer }}
+spec:
+  project: {{ .Values.appProject }}-{{ .Values.env }}
+  destination:
+    server: {{ .Values.destination.server | quote }}
+    namespace: {{ .Values.destination.namespace }}
+  sources:
+    - repoURL: {{ .Values.source.helmRepositoryUrl | quote }}
+      # Deliberately NOT .Values.source.chartRevision: that value is shared with
+      # Operational Hub, and raising it to pick up this application's chart would
+      # move a live application's pin and force it to re-sync. Each application
+      # pins the chart revision it was tested against.
+      targetRevision: {{ .Values.source.aiaeOnboardingChartRevision | quote }}
+      path: aiae-onboarding-api
+      helm:
+        parameters:
+          - name: environment
+            value: {{ .Values.env | quote }}
+          - name: namespace
+            value: {{ .Values.destination.namespace | quote }}
+          - name: image.repository
+            value: {{ .Values.services.aiaeOnboardingApi.imageRepository | quote }}
+          - name: liquibase.image.repository
+            value: {{ .Values.services.aiaeOnboardingApi.liquibaseImageRepository | quote }}
+          - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
+            value: {{ .Values.services.aiaeOnboardingApi.iamRoleArn | quote }}
+          - name: secretsManager.awsSecretName
+            value: {{ .Values.services.aiaeOnboardingApi.secretName | quote }}
+          - name: replicaCount
+            value: {{ .Values.services.aiaeOnboardingApi.replicaCount | quote }}
+          - name: autoscaling.minReplicas
+            value: {{ .Values.services.aiaeOnboardingApi.minReplicas | quote }}
+          - name: autoscaling.maxReplicas
+            value: {{ .Values.services.aiaeOnboardingApi.maxReplicas | quote }}
+          - name: ingress.enabled
+            value: "true"
+          - name: ingress.hosts[0].host
+            value: {{ .Values.services.aiaeOnboardingApi.host | quote }}
+          - name: ingress.hosts[0].paths[0].path
+            value: /api
+          - name: ingress.hosts[0].paths[0].pathType
+            value: Prefix
+          - name: ingress.hosts[0].paths[1].path
+            value: /actuator/health
+          - name: ingress.hosts[0].paths[1].pathType
+            value: Prefix
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/scheme
+            value: internet-facing
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/target-type
+            value: ip
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/listen-ports
+            value: '[{"HTTP":80}]'
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/healthcheck-path
+            value: /actuator/health/readiness
+          {{- range $name, $value := .Values.services.aiaeOnboardingApi.config }}
+          - name: config.{{ $name }}
+            value: {{ $value | quote }}
+          {{- end }}
+        valueFiles:
+          - $versions/aiae-onboarding-api/values.yaml
+    - repoURL: {{ .Values.source.versionsRepositoryUrl | quote }}
+      targetRevision: {{ .Values.source.aiaeOnboardingVersionsRevision | quote }}
+      ref: versions
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}
