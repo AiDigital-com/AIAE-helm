@@ -13,7 +13,7 @@ source:
   operationalHubVersionsRevision: "ab906f4b9c921717968dc9ee195a8ac6878d0896"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
-  aiaeOnboardingChartRevision: "ce691639f6b09441e6c0c8e29e91ac174523ba88"
+  aiaeOnboardingChartRevision: "0e2b1ee7f2d810360e7d2f3067d3d107e71b0726"
   # Updated by release-prod.yml on every production release.
   aiaeOnboardingVersionsRevision: "bd6ecd43b9af24dbb2fa4dd5e6ae3dceacf50608"
 services:
@@ -47,6 +47,7 @@ services:
     liquibaseImageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
     iamRoleArn: arn:aws:iam::125093118532:role/aiae-onboarding-prod-application
     secretName: AIAE-PRD/aiae-onboarding
+    databaseCredentialsSecretArn: arn:aws:secretsmanager:us-east-1:125093118532:secret:rds!db-ad3c8939-8383-4411-8ac7-ceed14b1a947-iktEIm
     host: ""
     # Chart defaults are already production-shaped (2 replicas, HPA 2-10,
     # PodDisruptionBudget enabled). Passed explicitly to match Operational Hub

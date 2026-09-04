@@ -33,6 +33,13 @@ spec:
             value: {{ .Values.services.aiaeOnboardingApi.iamRoleArn | quote }}
           - name: secretsManager.awsSecretName
             value: {{ .Values.services.aiaeOnboardingApi.secretName | quote }}
+          # The RDS-managed master user secret. The application reads the
+          # database credentials from it at connection time through the AWS
+          # Advanced JDBC Wrapper, and the Liquibase PreSync Job gets them as
+          # projected files. Nothing keeps a second copy, because AWS rotates
+          # this password every seven days and no copy would follow it.
+          - name: secretsManager.databaseCredentialsSecret.awsSecretName
+            value: {{ .Values.services.aiaeOnboardingApi.databaseCredentialsSecretArn | quote }}
           - name: replicaCount
             value: {{ .Values.services.aiaeOnboardingApi.replicaCount | quote }}
           - name: autoscaling.minReplicas
