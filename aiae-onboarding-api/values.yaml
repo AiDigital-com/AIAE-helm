@@ -36,6 +36,19 @@ config:
 # backend API. Projecting an unused secret would widen the blast radius for
 # nothing. GOOGLE_SERVICE_ACCOUNT_JSON belongs to Operational Hub's BigQuery
 # integration, which this application does not have.
+#
+# POSTGRES_USER and POSTGRES_PASSWORD are still projected as environment
+# variables, but they no longer come from this application's own secret: they
+# come from the RDS-managed secret below, which is their owner.
+#
+# The eks profile ignores them — it reads the credentials through the JDBC
+# wrapper instead, because an environment variable cannot follow a rotation:
+# it is fixed for the lifetime of the container. They stay for one reason: a
+# chart revision and an image tag are pinned separately, so a cluster can
+# briefly run the previous image against this chart. That image still expects
+# these variables, and removing them here would break it. Sourcing them from
+# the owning secret keeps both images working while removing the hand-copied
+# duplicate that caused the September 2026 outages.
 secretEnv:
   POSTGRES_HOST: POSTGRES_HOST
   POSTGRES_PORT: POSTGRES_PORT
@@ -52,10 +65,30 @@ secretsManager:
     - POSTGRES_HOST
     - POSTGRES_PORT
     - POSTGRES_DB
-    - POSTGRES_USER
-    - POSTGRES_PASSWORD
     - CLERK_PUBLISHABLE_KEY
     - OPENAI_API_KEY
+
+  # The RDS-managed master user secret: the single owner of the database
+  # credentials. AWS rotates it every seven days and that schedule cannot be
+  # turned off while RDS manages the password, so nothing may hold a second
+  # copy — a copy is what broke this application, and Operational Hub, in
+  # September 2026.
+  #
+  # Two consumers, both reading this same secret:
+  #   * the application, through the AWS Advanced JDBC Wrapper, which refetches
+  #     the secret and retries whenever PostgreSQL rejects a login. Its ARN
+  #     reaches the application as DB_MASTER_SECRET_ID in the ConfigMap.
+  #   * the Liquibase PreSync Job, through the files below. A Job pod is created
+  #     fresh for every sync, so its mount is always current.
+  #
+  # awsSecretName is the secret ARN, from the Terraform output
+  # onboarding_database_master_secret_arn. Keys map a field of the secret's JSON
+  # to the file name it is projected as.
+  databaseCredentialsSecret:
+    awsSecretName: ""
+    keys:
+      username: POSTGRES_USER
+      password: POSTGRES_PASSWORD
 
 liquibase:
   enabled: true
