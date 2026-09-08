@@ -9,3 +9,11 @@ data:
   {{- range $name, $value := .Values.config }}
   {{ $name }}: {{ $value | quote }}
   {{- end }}
+  {{- with .Values.secretsManager.databaseCredentialsSecret }}
+  {{- if .awsSecretName }}
+  # Read by the eks profile's spring.datasource.hikari.data-source-properties
+  # .secretsManagerSecretId, so the JDBC wrapper knows which secret holds the
+  # database credentials. An ARN identifies a secret; it is not one.
+  DB_MASTER_SECRET_ID: {{ .awsSecretName | quote }}
+  {{- end }}
+  {{- end }}
