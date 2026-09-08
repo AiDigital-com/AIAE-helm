@@ -9,7 +9,7 @@ destination:
 source:
   helmRepositoryUrl: ""
   versionsRepositoryUrl: ""
-  chartRevision: "5480b8bca8d0562eba8a198170830c957b603eab"
+  chartRevision: "8b3d95a8376dfffb7a2f9291f6abfcefaaf7ce33"
   operationalHubVersionsRevision: "4d6ec9e17e5dae0f778728d7e86bc310c1426af5"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
@@ -23,6 +23,7 @@ services:
     liquibaseImageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/operational-hub-application
     iamRoleArn: arn:aws:iam::496336474487:role/aiae-operational-hub-dev-application
     secretName: AIAE-DEV/operational-hub
+    databaseCredentialsSecretArn: arn:aws:secretsmanager:us-east-1:496336474487:secret:rds!db-82eba1a9-9e5c-44ed-a520-8daf44a00eb3-3mlEJZ
     host: ""
     replicaCount: 1
     minReplicas: 1
