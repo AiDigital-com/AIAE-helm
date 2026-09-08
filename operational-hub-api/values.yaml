@@ -61,6 +61,20 @@ secretsManager:
     - CLERK_PUBLISHABLE_KEY
     - CLERK_SECRET_KEY
     - GOOGLE_SERVICE_ACCOUNT_JSON
+    # Credentials for the PostgreSQL metrics exporter. It is a separate pod and
+    # cannot recover from a rotation the way the application can: it builds its
+    # connection string once, at startup, from environment variables, and has no
+    # refetch-and-retry path. So it must not depend on the password AWS rotates.
+    #
+    # These credentials are ours and never rotate, and they belong to a role that
+    # can only read statistics (pg_monitor) rather than to the master user the
+    # exporter used before — excessive privilege for something that reads
+    # counters. Deliberately alphanumeric: the RDS-generated password contains
+    # characters that appear to break the exporter's connection string, which is
+    # the likeliest reason it had been failing authentication since 31 August
+    # while still reporting pg_up = 1, leaving the deadlock rule blind.
+    - EXPORTER_USER
+    - EXPORTER_PASSWORD
 
   # The RDS-managed master user secret: the single owner of the database
   # credentials. AWS rotates it every seven days and that schedule cannot be
