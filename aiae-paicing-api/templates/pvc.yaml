@@ -7,7 +7,16 @@ metadata:
   labels:
     {{- include "aiae-paicing-api.labels" . | nindent 4 }}
   annotations:
-    argocd.argoproj.io/sync-wave: "-2"
+    # The SAME wave as the Deployment, and deliberately not an earlier one.
+    # The storage class binds WaitForFirstConsumer, so this claim stays Pending
+    # until a Pod asks for it — and Argo CD treats a Pending claim as unhealthy
+    # and will not start the next wave until it is. In an earlier wave that is a
+    # deadlock: no Pod, so no binding; no binding, so no Pod. Applying both
+    # together lets the Pod bind the volume and both become healthy.
+    #
+    # WaitForFirstConsumer itself is not the thing to change: it is what places
+    # the volume in the availability zone the Pod actually landed in.
+    argocd.argoproj.io/sync-wave: "0"
     # Argo CD must never prune this. The claim is the only thing tying the Pod
     # to its volume, and a prune would strand the dashboard cache: the
     # StorageClass retains the underlying volume, but nothing would reattach it.
