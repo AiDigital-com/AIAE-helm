@@ -65,6 +65,25 @@ spec:
             # purpose: AWS generates the master password and it may contain
             # @ / ? or #, which would silently produce a malformed URL and an
             # authentication failure that reads like a wrong password.
+            #
+            # no-verify, NOT require. The same word means different things on
+            # the two code paths, and RDS rejects the difference:
+            #
+            #   ?sslmode=require in a CONNECTION STRING -> rejectUnauthorized
+            #     false (pg-connection-string/index.js:116) — encrypted, server
+            #     identity not checked. This is what the application uses.
+            #   PGSSLMODE=require in the ENVIRONMENT -> plain `ssl: true`
+            #     (pg/lib/connection-parameters.js:26) — Node then verifies the
+            #     certificate against its trust store, which does not carry the
+            #     Amazon RDS CA, so the handshake fails.
+            #
+            # PGSSLMODE=no-verify maps to { rejectUnauthorized: false }, giving
+            # this Job exactly the behaviour the application already has.
+            # Without any of it the connection is plaintext and RDS answers
+            # "no pg_hba.conf entry ... no encryption", which reads like a
+            # firewall problem rather than a TLS one.
+            - name: PGSSLMODE
+              value: no-verify
             - name: PGHOST
               valueFrom:
                 secretKeyRef:
