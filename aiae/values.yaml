@@ -94,11 +94,10 @@ services:
       USAGE_LOG_SERVICE_NAME: aiae-onboarding
       USAGE_LOG_ENVIRONMENT: dev
   paicingApi:
-    # FALSE until the first successful DEV workflow run. The versions file still
-    # holds bootstrap placeholder tags, and an enabled Application would have
-    # Argo CD try to pull them and sit Degraded on ImagePullBackOff. The same
-    # sequence was used when the Onboarding Platform was added.
-    enabled: false
+    # Enabled after the first successful DEV workflow run published real image
+    # tags; before that the versions file held bootstrap placeholders and Argo CD
+    # would have sat Degraded on ImagePullBackOff.
+    enabled: true
     imageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/paicing-application
     iamRoleArn: arn:aws:iam::496336474487:role/aiae-paicing-dev-application
     # Separate role: only the migration Job may read the RDS master credentials.
