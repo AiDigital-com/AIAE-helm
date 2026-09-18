@@ -1,0 +1,125 @@
+{{- if .Values.migrate.enabled }}
+# Argo CD PreSync hook. Migrations run as their own step and never from the
+# application process: replicas would otherwise race each other on startup
+# (docs/local-development.md in the application repository). A failed Job stops
+# the sync, so new pods never roll out against a schema that was not applied.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "aiae-paicing-api.migrateName" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "aiae-paicing-api.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database-migration
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-15"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    # A DIFFERENT IAM role from the application's: this is the only identity
+    # allowed to read the RDS master credentials.
+    {{- with .Values.migrateServiceAccount.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # The tag is reshaped before it becomes part of a name: the leading
+  # `migrate-` is dropped so the name does not read "migrate-migrate", and the
+  # version's dots become dashes because this name ends up in Pod names and
+  # hostnames, where a dot is legal but changes how the name is interpreted —
+  # the API server warns about exactly that.
+  name: {{ include "aiae-paicing-api.migrateName" . }}-{{ default "bootstrap" .Values.migrate.image.tag | trimPrefix "migrate-" | replace "." "-" | trunc 20 | trimSuffix "-" }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "aiae-paicing-api.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-4"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    aiae.aidigital.tech/deployment-revision: {{ .Values.deploymentRevision | quote }}
+spec:
+  activeDeadlineSeconds: {{ .Values.migrate.activeDeadlineSeconds }}
+  backoffLimit: {{ .Values.migrate.backoffLimit }}
+  template:
+    metadata:
+      annotations:
+        aiae.aidigital.tech/deployment-revision: {{ .Values.deploymentRevision | quote }}
+      labels:
+        {{- include "aiae-paicing-api.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: database-migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "aiae-paicing-api.migrateName" . }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.migrate.image.repository }}:{{ .Values.migrate.image.tag }}"
+          imagePullPolicy: {{ .Values.migrate.image.pullPolicy }}
+          # The image's own CMD runs both steps: `npm run migrate` to apply the
+          # schema as the master user, then ensure-app-role.mjs to reconcile the
+          # role the application logs in as. Not overridden here, so the image
+          # stays the single description of what a migration is.
+          env:
+            # node-pg-migrate reads these through pg's ConnectionParameters when
+            # DATABASE_URL is unset. Discrete values rather than a DSN on
+            # purpose: AWS generates the master password and it may contain
+            # @ / ? or #, which would silently produce a malformed URL and an
+            # authentication failure that reads like a wrong password.
+            - name: PGHOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.migrateSecretName" . }}
+                  key: POSTGRES_HOST
+            - name: PGPORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.migrateSecretName" . }}
+                  key: POSTGRES_PORT
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.migrateSecretName" . }}
+                  key: POSTGRES_DB
+            # From the RDS-managed secret, which AWS owns and rotates. A Job Pod
+            # is created fresh for every sync, so this is always current.
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.migrateSecretName" . }}
+                  key: {{ .Values.secretsManager.databaseCredentialsSecret.keys.username }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.migrateSecretName" . }}
+                  key: {{ .Values.secretsManager.databaseCredentialsSecret.keys.password }}
+            # The application's own DSN. ensure-app-role.mjs reads the role name
+            # and password back out of it and reconciles the database role to
+            # match, so this string is the single source for both and they
+            # cannot drift apart.
+            - name: APP_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.migrateSecretName" . }}
+                  key: DATABASE_URL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets-store
+              readOnly: true
+      volumes:
+        # Mounting the class is what makes the CSI driver fetch the secrets and
+        # synchronise the Kubernetes Secret the env vars above read from; the
+        # secretObjects are only created while a pod mounts the volume.
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ include "aiae-paicing-api.migrateName" . }}-spc
+{{- end }}

@@ -1,0 +1,22 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aiae-paicing-api.name" . }}-data
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "aiae-paicing-api.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    # Argo CD must never prune this. The claim is the only thing tying the Pod
+    # to its volume, and a prune would strand the dashboard cache: the
+    # StorageClass retains the underlying volume, but nothing would reattach it.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  storageClassName: {{ .Values.persistence.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+{{- end }}

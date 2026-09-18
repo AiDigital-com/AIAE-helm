@@ -1,0 +1,199 @@
+nameOverride: aiae-paicing-api
+environment: dev
+namespace: aiae-dev
+deploymentRevision: ""
+
+# ─── Images ──────────────────────────────────────────────────────────────────
+# Four images, one release. Tags come from AIAE-helm-versions and are written
+# there by the deploy workflow; the repository is the same for all four,
+# because they are distinguished by tag prefix.
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+builder:
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+
+fetcher:
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+
+migrate:
+  enabled: true
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+  activeDeadlineSeconds: 900
+  backoffLimit: 1
+
+# ─── Topology ────────────────────────────────────────────────────────────────
+# ONE Pod, THREE containers. Not a stylistic choice: dash-gate reads the
+# dashboard cache that pacing-builder writes, and pacing-builder reads the
+# BigQuery pages that bq-fetcher stages — all through one filesystem. The only
+# storage the cluster can provide is EBS, which is ReadWriteOnce and therefore
+# mountable by a single node, so the three have to share a Pod.
+#
+# The same fact caps this at one replica: a second Pod could not attach the
+# volume, and if it could, it would hold a different copy of the cache.
+replicaCount: 1
+
+# Recreate, NOT RollingUpdate. A RollingUpdate starts the new Pod before
+# stopping the old one; with a ReadWriteOnce volume the new Pod cannot attach
+# until the old one releases it, and the rollout deadlocks.
+strategy:
+  type: Recreate
+
+# dash-gate is the only container the Service and the ALB talk to. The other
+# two listen on the Pod's loopback and are unreachable from outside it.
+containerPort: 3000
+builderPort: 3100
+fetcherPort: 3200
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+migrateServiceAccount:
+  create: true
+  annotations: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+# ─── Shared cache volume ─────────────────────────────────────────────────────
+persistence:
+  enabled: true
+  # Created by the platform's cluster-bootstrap chart. The pre-existing `gp2`
+  # class names a provisioner Kubernetes removed in 1.27 and can never bind.
+  storageClassName: ebs-gp3
+  accessMode: ReadWriteOnce
+  size: 20Gi
+  mountPath: /dashboards
+  # A pacing is roughly 25 MiB across its files and every refresh OVERWRITES
+  # them, so this grows with the number of pacings, not with time. The staging
+  # directories are keyed by refresh id but both services sweep their own on a
+  # TTL, so they do not accumulate either.
+
+config:
+  NODE_ENV: production
+  PORT: "3000"
+  DASH_ROOT: /dashboards
+  DATA_DIR: /dashboards/data
+  # The three containers share a network namespace, so these are loopback
+  # addresses. Without them dash-gate would resolve the Docker Compose service
+  # names, which do not exist here.
+  BQ_FETCHER_URL: http://127.0.0.1:3200/fetch
+  PACING_BUILDER_BASE_URL: http://127.0.0.1:3100
+  BQ_PROJECT_ID: aiae-493511
+  # The in-process ports of the former n8n workflows. All three already default
+  # to `direct`; naming them makes the rollback lever visible in one place.
+  REFRESH_SOURCE: direct
+  DAILY_BUILD_SOURCE: direct
+  NS_MASTER_SOURCE: direct
+  # OFF. n8n is not deployed in DEV, so nothing competes with an in-process
+  # cron — but an unattended nightly BigQuery fan-out is not something to
+  # switch on silently. Flip it here when it is wanted.
+  DAILY_BUILD_SCHEDULE_ENABLED: "false"
+
+# Keys projected into each container from the application secret. Split per
+# container deliberately: bq-fetcher gets the Google key and the webhook secret
+# it signs with, and nothing else. It has no reason to hold the Slack token or
+# the Hub assertion key, and the compose file it came from said as much.
+secretEnv:
+  app:
+    DATABASE_URL: DATABASE_URL
+    HUB_ASSERTION_SECRET: HUB_ASSERTION_SECRET
+    TOKEN_SECRET: TOKEN_SECRET
+    N8N_WEBHOOK_SECRET: N8N_WEBHOOK_SECRET
+    SLACK_BOT_TOKEN: SLACK_BOT_TOKEN
+    GOOGLE_SERVICE_ACCOUNT_JSON: GOOGLE_SERVICE_ACCOUNT_JSON
+    OPENROUTER_API_KEY: OPENROUTER_API_KEY
+    OPENROUTER_MODEL: OPENROUTER_MODEL
+  builder:
+    N8N_WEBHOOK_SECRET: N8N_WEBHOOK_SECRET
+  fetcher:
+    N8N_WEBHOOK_SECRET: N8N_WEBHOOK_SECRET
+    GOOGLE_SERVICE_ACCOUNT_JSON: GOOGLE_SERVICE_ACCOUNT_JSON
+
+secretsManager:
+  enabled: true
+  awsSecretName: ""
+  keys:
+    - DATABASE_URL
+    - POSTGRES_HOST
+    - POSTGRES_PORT
+    - POSTGRES_DB
+    - HUB_ASSERTION_SECRET
+    - TOKEN_SECRET
+    - N8N_WEBHOOK_SECRET
+    - SLACK_BOT_TOKEN
+    - GOOGLE_SERVICE_ACCOUNT_JSON
+    - OPENROUTER_API_KEY
+    - OPENROUTER_MODEL
+
+  # The RDS-managed master secret. Mounted ONLY by the migration Job: it
+  # applies the schema and reconciles the application's own database role, and
+  # it is the only identity whose IAM role can read this. AWS rotates this
+  # password every seven days; a Job Pod is created fresh for every sync, so
+  # its mount is always current. The application never sees it — it logs in as
+  # its own role, whose password is inside DATABASE_URL above and which AWS
+  # does not touch.
+  databaseCredentialsSecret:
+    awsSecretName: ""
+    keys:
+      username: POSTGRES_USER
+      password: POSTGRES_PASSWORD
+
+resources:
+  app:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  builder:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      # Carried over from docker-compose.yml, where memswap_limit equals
+      # mem_limit so a runaway build is OOM-killed AT the cap, fast and loud,
+      # instead of thrashing. Lowering this without re-running
+      # tests/builder-memory-probe.mjs would turn a December-scale build into a
+      # restart loop.
+      memory: 2560Mi
+  fetcher:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+probes:
+  # dash-gate answers /healthz without touching Postgres. All three probes
+  # share it: with one replica there is no sibling to shed load onto, so a
+  # readiness probe that failed on a database blip would empty the ALB target
+  # group and turn a recoverable hiccup into an outage.
+  path: /healthz
+  startupFailureThreshold: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+ingress:
+  enabled: false
+  className: alb
+  annotations: {}
+  hosts: []
+  tls: []

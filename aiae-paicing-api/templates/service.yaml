@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "aiae-paicing-api.name" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "aiae-paicing-api.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+  # Only dash-gate's port is published. pacing-builder and bq-fetcher listen on
+  # the Pod's loopback and must stay unreachable from the cluster network: both
+  # authenticate callers with an HMAC shared secret, not with an identity, so
+  # exposure would widen their trust boundary for no gain.
+  selector:
+    {{- include "aiae-paicing-api.selectorLabels" . | nindent 4 }}

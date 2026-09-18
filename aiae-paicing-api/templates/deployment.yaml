@@ -1,0 +1,224 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aiae-paicing-api.name" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "aiae-paicing-api.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  strategy:
+    {{- toYaml .Values.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "aiae-paicing-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        aiae.aidigital.tech/deployment-revision: {{ .Values.deploymentRevision | quote }}
+      labels:
+        {{- include "aiae-paicing-api.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "aiae-paicing-api.name" . }}
+      {{- if .Values.persistence.enabled }}
+      # A freshly provisioned EBS volume is an empty filesystem. pacing-builder
+      # creates its own staging directory and bq-fetcher creates its own, but
+      # NOTHING creates the published data directory: the builder publishes with
+      # a bare rename into {{ .Values.config.DATA_DIR }} (pacing-builder/server.mjs),
+      # which fails with ENOENT if the directory is absent. Docker Compose never
+      # hit this because the host path already existed.
+      #
+      # Idempotent, so it costs nothing on every later start.
+      initContainers:
+        - name: init-dirs
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ec
+            - >-
+              mkdir -p {{ .Values.persistence.mountPath }}/data
+              {{ .Values.persistence.mountPath }}/.builder-tmp
+              {{ .Values.persistence.mountPath }}/.fetcher-staging
+          volumeMounts:
+            - name: dashboards
+              mountPath: {{ .Values.persistence.mountPath }}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      {{- end }}
+      containers:
+        # ── dash-gate ─────────────────────────────────────────────────────────
+        # The API. The Operational Hub is its only caller, and the only
+        # container behind the Service and the ALB.
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "aiae-paicing-api.name" . }}-config
+          env:
+            {{- range $name, $secretKey := .Values.secretEnv.app }}
+            - name: {{ $name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.secretName" $ }}
+                  key: {{ $secretKey }}
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.startupFailureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources.app | nindent 12 }}
+          volumeMounts:
+            - name: dashboards
+              mountPath: {{ .Values.persistence.mountPath }}
+              # dash-gate only READS the cache; pacing-builder owns writing it.
+              # This matches docker-compose.yml, which mounts the same path `:ro`.
+              #
+              # Known consequence, PRE-EXISTING and deliberately preserved here:
+              # api-routes.mjs unlinks <slug>.cm360.json when a pacing's
+              # third-party configuration is cleared. Against a read-only mount
+              # that call fails with EROFS, and its catch only ignores ENOENT —
+              # so the delete is logged and the orphaned file stays on disk. That
+              # is how production behaves today. Making this writable would fix
+              # it, but it is a behaviour change, not a migration step; do it
+              # deliberately or not at all.
+              readOnly: true
+            {{- if .Values.secretsManager.enabled }}
+            - name: secrets-store
+              mountPath: /mnt/secrets-store
+              readOnly: true
+            {{- end }}
+
+        # ── pacing-builder ────────────────────────────────────────────────────
+        # Parses staged BigQuery pages and builds the dashboard files. Isolated
+        # from dash-gate in its own container so a runaway build is OOM-killed
+        # on its own memory limit instead of taking the API down with it.
+        - name: pacing-builder
+          image: "{{ .Values.builder.image.repository }}:{{ .Values.builder.image.tag }}"
+          imagePullPolicy: {{ .Values.builder.image.pullPolicy }}
+          ports:
+            - name: builder
+              containerPort: {{ .Values.builderPort }}
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: {{ .Values.builderPort | quote }}
+            - name: DATA_DIR
+              value: {{ .Values.persistence.mountPath }}/data
+            - name: STAGING_DIR
+              value: {{ .Values.persistence.mountPath }}/.builder-tmp
+            - name: FETCH_ROOT
+              value: {{ .Values.persistence.mountPath }}/.fetcher-staging
+            {{- range $name, $secretKey := .Values.secretEnv.builder }}
+            - name: {{ $name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.secretName" $ }}
+                  key: {{ $secretKey }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: builder
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources.builder | nindent 12 }}
+          volumeMounts:
+            - name: dashboards
+              mountPath: {{ .Values.persistence.mountPath }}
+
+        # ── bq-fetcher ────────────────────────────────────────────────────────
+        # Runs the BigQuery job and streams raw result pages to its own staging
+        # directory, so page bytes never enter the API process. Deliberately
+        # narrow: it gets the Google key and the webhook secret, and nothing
+        # else — no Postgres, no Slack, no Hub assertion key.
+        - name: bq-fetcher
+          image: "{{ .Values.fetcher.image.repository }}:{{ .Values.fetcher.image.tag }}"
+          imagePullPolicy: {{ .Values.fetcher.image.pullPolicy }}
+          ports:
+            - name: fetcher
+              containerPort: {{ .Values.fetcherPort }}
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: {{ .Values.fetcherPort | quote }}
+            - name: BQ_PROJECT_ID
+              value: {{ .Values.config.BQ_PROJECT_ID | quote }}
+            {{- range $name, $secretKey := .Values.secretEnv.fetcher }}
+            - name: {{ $name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aiae-paicing-api.secretName" $ }}
+                  key: {{ $secretKey }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: fetcher
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources.fetcher | nindent 12 }}
+          volumeMounts:
+            # Only its own staging subdirectory, via subPath — the compose file
+            # gave it the same narrow mount, and widening it here would hand the
+            # container the whole dashboard cache it has no reason to see.
+            - name: dashboards
+              mountPath: /staging
+              subPath: .fetcher-staging
+      volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: dashboards
+          persistentVolumeClaim:
+            claimName: {{ include "aiae-paicing-api.name" . }}-data
+        {{- else }}
+        - name: dashboards
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.secretsManager.enabled }}
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ include "aiae-paicing-api.name" . }}-spc
+        {{- end }}
