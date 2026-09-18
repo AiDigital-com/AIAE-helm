@@ -1,0 +1,102 @@
+{{- if .Values.services.paicingApi.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aiae-paicing-api-{{ .Values.env }}
+  namespace: {{ .Values.const.argoNamespace }}
+  finalizers:
+    - {{ .Values.const.finalizer }}
+spec:
+  project: {{ .Values.appProject }}-{{ .Values.env }}
+  destination:
+    server: {{ .Values.destination.server | quote }}
+    namespace: {{ .Values.destination.namespace }}
+  sources:
+    - repoURL: {{ .Values.source.helmRepositoryUrl | quote }}
+      # Deliberately NOT .Values.source.chartRevision: that value is shared with
+      # Operational Hub, and raising it to pick up this application's chart would
+      # move a live application's pin and force it to re-sync. Each application
+      # pins the chart revision it was tested against.
+      targetRevision: {{ .Values.source.paicingChartRevision | quote }}
+      path: aiae-paicing-api
+      helm:
+        parameters:
+          - name: environment
+            value: {{ .Values.env | quote }}
+          - name: namespace
+            value: {{ .Values.destination.namespace | quote }}
+          # One ECR repository holds all four images; the tags in the versions
+          # file are what tell them apart.
+          - name: image.repository
+            value: {{ .Values.services.paicingApi.imageRepository | quote }}
+          - name: builder.image.repository
+            value: {{ .Values.services.paicingApi.imageRepository | quote }}
+          - name: fetcher.image.repository
+            value: {{ .Values.services.paicingApi.imageRepository | quote }}
+          - name: migrate.image.repository
+            value: {{ .Values.services.paicingApi.imageRepository | quote }}
+          - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
+            value: {{ .Values.services.paicingApi.iamRoleArn | quote }}
+          # A DIFFERENT role: the migration Job is the only identity allowed to
+          # read the RDS master credentials. The application logs in as its own
+          # least-privilege database role, so sharing one role here would hand a
+          # pod that may only read and write rows the keys to alter the schema.
+          - name: migrateServiceAccount.annotations.eks\.amazonaws\.com/role-arn
+            value: {{ .Values.services.paicingApi.migrateIamRoleArn | quote }}
+          - name: secretsManager.awsSecretName
+            value: {{ .Values.services.paicingApi.secretName | quote }}
+          # The RDS-managed master user secret, mounted ONLY by the migration
+          # Job. AWS rotates this password every seven days and that schedule
+          # cannot be turned off, which is why nothing keeps a copy: a Job Pod is
+          # created fresh for every sync, and the application never uses these
+          # credentials at all.
+          - name: secretsManager.databaseCredentialsSecret.awsSecretName
+            value: {{ .Values.services.paicingApi.databaseCredentialsSecretArn | quote }}
+          # Exactly one. The three containers share a ReadWriteOnce volume, so a
+          # second pod could not attach it — and if it could, it would hold a
+          # different copy of the dashboard cache.
+          - name: replicaCount
+            value: {{ .Values.services.paicingApi.replicaCount | quote }}
+          - name: persistence.storageClassName
+            value: {{ .Values.services.paicingApi.storageClassName | quote }}
+          - name: persistence.size
+            value: {{ .Values.services.paicingApi.storageSize | quote }}
+          - name: ingress.enabled
+            value: "true"
+          - name: ingress.hosts[0].host
+            value: {{ .Values.services.paicingApi.host | quote }}
+          - name: ingress.hosts[0].paths[0].path
+            value: /api
+          - name: ingress.hosts[0].paths[0].pathType
+            value: Prefix
+          # Reachable from outside the cluster on purpose: this is what the ALB
+          # target group health check calls, and it is the one path that answers
+          # without a Hub assertion.
+          - name: ingress.hosts[0].paths[1].path
+            value: /healthz
+          - name: ingress.hosts[0].paths[1].pathType
+            value: Prefix
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/scheme
+            value: internet-facing
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/target-type
+            value: ip
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/listen-ports
+            value: '[{"HTTP":80}]'
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/healthcheck-path
+            value: /healthz
+          {{- range $name, $value := .Values.services.paicingApi.config }}
+          - name: config.{{ $name }}
+            value: {{ $value | quote }}
+          {{- end }}
+        valueFiles:
+          - $versions/aiae-paicing-api/values.yaml
+    - repoURL: {{ .Values.source.versionsRepositoryUrl | quote }}
+      targetRevision: {{ .Values.source.paicingVersionsRevision | quote }}
+      ref: versions
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}

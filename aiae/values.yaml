@@ -16,6 +16,11 @@ source:
   aiaeOnboardingChartRevision: "0e2b1ee7f2d810360e7d2f3067d3d107e71b0726"
   # Updated by the AIAE-onboarding-platform DEV workflow on every deployment.
   aiaeOnboardingVersionsRevision: "52ea5fbb43c98a920cb77b66d1f031ffbc84d903"
+  # Chart revision Pacing was tested against. Its own key for the same reason as
+  # the one above: raising a shared pin would re-sync a live application.
+  paicingChartRevision: "3582e8ff6f63a11cd719ff153da926c80a35da1c"
+  # Updated by the AIAE-paicing DEV workflow on every deployment.
+  paicingVersionsRevision: "bdb326658ff6ead99fd5717a3e43fa90cdc9615a"
 services:
   operationalHubApi:
     enabled: true
@@ -88,3 +93,42 @@ services:
       DB_MAX_POOL_SIZE: "10"
       USAGE_LOG_SERVICE_NAME: aiae-onboarding
       USAGE_LOG_ENVIRONMENT: dev
+  paicingApi:
+    # FALSE until the first successful DEV workflow run. The versions file still
+    # holds bootstrap placeholder tags, and an enabled Application would have
+    # Argo CD try to pull them and sit Degraded on ImagePullBackOff. The same
+    # sequence was used when the Onboarding Platform was added.
+    enabled: false
+    imageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/paicing-application
+    iamRoleArn: arn:aws:iam::496336474487:role/aiae-paicing-dev-application
+    # Separate role: only the migration Job may read the RDS master credentials.
+    migrateIamRoleArn: arn:aws:iam::496336474487:role/aiae-paicing-dev-migrate
+    secretName: AIAE-DEV/aiae-paicing
+    databaseCredentialsSecretArn: arn:aws:secretsmanager:us-east-1:496336474487:secret:rds!db-5cc8220b-6d20-43be-8b26-30baff23b034-mzNxZH
+    host: ""
+    # One, and not a tuning choice: the three containers share a ReadWriteOnce
+    # volume, which only one node can mount.
+    replicaCount: 1
+    storageClassName: ebs-gp3
+    storageSize: 20Gi
+    config:
+      NODE_ENV: production
+      PORT: "3000"
+      DASH_ROOT: /dashboards
+      DATA_DIR: /dashboards/data
+      # Loopback: the three containers share a network namespace. Without these
+      # dash-gate would look for the Docker Compose service names.
+      BQ_FETCHER_URL: http://127.0.0.1:3200/fetch
+      PACING_BUILDER_BASE_URL: http://127.0.0.1:3100
+      BQ_PROJECT_ID: aiae-493511
+      # The in-process ports of the former n8n workflows. n8n is NOT deployed in
+      # DEV, so no N8N_*_WEBHOOK_URL is set: the calls that still target it
+      # (sheet-source, source-manager, personal-summary, workspace-log, cm360)
+      # fail softly — callN8nWebhook returns false and never throws.
+      REFRESH_SOURCE: direct
+      DAILY_BUILD_SOURCE: direct
+      NS_MASTER_SOURCE: direct
+      # OFF. Nothing competes with an in-process cron here, but an unattended
+      # nightly BigQuery fan-out is not switched on silently.
+      DAILY_BUILD_SCHEDULE_ENABLED: "false"
+      SHEET_SOURCE_ACCOUNT_EMAIL: mpo-pacing@aidigital.com
