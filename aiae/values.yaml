@@ -9,7 +9,7 @@ destination:
 source:
   helmRepositoryUrl: ""
   versionsRepositoryUrl: ""
-  chartRevision: "5d10fa722ecd3219f7b25cd7f80be7ef1b5bba96"
+  chartRevision: "8b3d95a8376dfffb7a2f9291f6abfcefaaf7ce33"
   operationalHubVersionsRevision: "c54cdd793268b77c65fcee3bc90932c9f04b8de7"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
