@@ -25,6 +25,21 @@ spec:
     spec:
       serviceAccountName: {{ include "aiae-paicing-api.name" . }}
       {{- if .Values.persistence.enabled }}
+      securityContext:
+        # A freshly provisioned EBS volume is owned by root, and the dash-gate
+        # image runs as uid 100 / gid 101 — so without this the initContainer
+        # cannot even mkdir on it: "Permission denied", and the Pod never gets
+        # past Init. Docker Compose never showed this because the host path was
+        # already owned correctly.
+        fsGroup: {{ .Values.persistence.fsGroup }}
+        # OnRootMismatch, not the default Always: the default re-chowns the
+        # WHOLE volume on every Pod start, and this one holds the dashboard
+        # cache — tens of thousands of files once the pacing fleet is built.
+        # Checking the root directory's ownership first makes a restart instant
+        # instead of proportional to the cache.
+        fsGroupChangePolicy: OnRootMismatch
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
       # A freshly provisioned EBS volume is an empty filesystem. pacing-builder
       # creates its own staging directory and bq-fetcher creates its own, but
       # NOTHING creates the published data directory: the builder publishes with

@@ -77,6 +77,10 @@ persistence:
   accessMode: ReadWriteOnce
   size: 20Gi
   mountPath: /dashboards
+  # The group id the dash-gate image's `app` user belongs to (uid 100 / gid 101,
+  # from `adduser -S app -G app` in its Dockerfile). Kubernetes gives the volume
+  # to this group so a non-root container can write to it.
+  fsGroup: 101
   # A pacing is roughly 25 MiB across its files and every refresh OVERWRITES
   # them, so this grows with the number of pacings, not with time. The staging
   # directories are keyed by refresh id but both services sweep their own on a
