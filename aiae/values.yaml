@@ -18,7 +18,7 @@ source:
   aiaeOnboardingVersionsRevision: "52ea5fbb43c98a920cb77b66d1f031ffbc84d903"
   # Chart revision Pacing was tested against. Its own key for the same reason as
   # the one above: raising a shared pin would re-sync a live application.
-  paicingChartRevision: "2da083c52386197e74126fd19da36fb95f34b324"
+  paicingChartRevision: "7cf2bf35fd06db0998e97c830ba9e2a3f0ed2210"
   # Updated by the AIAE-paicing DEV workflow on every deployment.
   paicingVersionsRevision: "5cda4519900ed8ce69676092b357981c363b90b7"
 services:
