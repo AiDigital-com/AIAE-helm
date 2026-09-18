@@ -66,22 +66,25 @@ spec:
             # @ / ? or #, which would silently produce a malformed URL and an
             # authentication failure that reads like a wrong password.
             #
-            # no-verify, NOT require. The same word means different things on
-            # the two code paths, and RDS rejects the difference:
+            # no-verify, NOT require — for BOTH this Job and the
+            # application's own DSN, which carries the same value.
             #
-            #   ?sslmode=require in a CONNECTION STRING -> rejectUnauthorized
-            #     false (pg-connection-string/index.js:116) — encrypted, server
-            #     identity not checked. This is what the application uses.
-            #   PGSSLMODE=require in the ENVIRONMENT -> plain `ssl: true`
-            #     (pg/lib/connection-parameters.js:26) — Node then verifies the
-            #     certificate against its trust store, which does not carry the
-            #     Amazon RDS CA, so the handshake fails.
+            # In node-postgres, `require` does not mean "encrypt without
+            # checking". pg-connection-string only relaxes verification for
+            # `require` inside its libpq-compatibility branch, which is off
+            # unless uselibpqcompat is set; on the default path `require` just
+            # emits a deprecation warning and leaves verification ON
+            # (index.js:139-151). PGSSLMODE=require behaves the same way
+            # (pg/lib/connection-parameters.js:26 returns plain `ssl: true`).
+            # Either way Node then checks the certificate against a trust store
+            # that has no Amazon RDS CA and fails with "self-signed certificate
+            # in certificate chain".
             #
-            # PGSSLMODE=no-verify maps to { rejectUnauthorized: false }, giving
-            # this Job exactly the behaviour the application already has.
-            # Without any of it the connection is plaintext and RDS answers
-            # "no pg_hba.conf entry ... no encryption", which reads like a
-            # firewall problem rather than a TLS one.
+            # `no-verify` is the only value that sets rejectUnauthorized false,
+            # which is what the repository's own .env.example already recommends.
+            # With no TLS setting at all the connection is plaintext and RDS
+            # answers "no pg_hba.conf entry ... no encryption" — an error that
+            # reads like a firewall problem and is not one.
             - name: PGSSLMODE
               value: no-verify
             - name: PGHOST
