@@ -20,7 +20,7 @@ source:
   # the one above: raising a shared pin would re-sync a live application.
   paicingChartRevision: "936cdce186371a2258e15627c98578eb7f735b74"
   # Updated by the AIAE-paicing DEV workflow on every deployment.
-  paicingVersionsRevision: "40358f60591a0c6fbaf8324c927bea7821176ecb"
+  paicingVersionsRevision: "88a5425e9170a07f12c4fa3065e17d7b7c720b8b"
 services:
   operationalHubApi:
     enabled: true
