@@ -18,7 +18,7 @@ source:
   aiaeOnboardingVersionsRevision: "52ea5fbb43c98a920cb77b66d1f031ffbc84d903"
   # Chart revision Pacing was tested against. Its own key for the same reason as
   # the one above: raising a shared pin would re-sync a live application.
-  paicingChartRevision: "936cdce186371a2258e15627c98578eb7f735b74"
+  paicingChartRevision: "b2fed1f0b04a88ab67d37b606fb3074169bb53c7"
   # Updated by the AIAE-paicing DEV workflow on every deployment.
   paicingVersionsRevision: "88a5425e9170a07f12c4fa3065e17d7b7c720b8b"
 services:
@@ -127,8 +127,11 @@ services:
       BQ_PROJECT_ID: aiae-493511
       # The in-process ports of the former n8n workflows. n8n is NOT deployed in
       # DEV, so no N8N_*_WEBHOOK_URL is set: the calls that still target it
-      # (sheet-source, source-manager, personal-summary, workspace-log, cm360)
-      # fail softly — callN8nWebhook returns false and never throws.
+      # (sheet-source, source-manager, workspace-log, cm360) fail softly —
+      # callN8nWebhook returns false and never throws. personal-summary left
+      # that list once it was ported too: the pacing summary is sent from
+      # dash-gate itself now (lib/personal-summary.mjs), in-process, at the end
+      # of every refresh.
       REFRESH_SOURCE: direct
       DAILY_BUILD_SOURCE: direct
       NS_MASTER_SOURCE: direct
@@ -136,3 +139,16 @@ services:
       # nightly BigQuery fan-out is not switched on silently.
       DAILY_BUILD_SCHEDULE_ENABLED: "false"
       SHEET_SOURCE_ACCOUNT_EMAIL: mpo-pacing@aidigital.com
+      # Slack channels for operational telemetry: build results, failed
+      # refreshes, sheet warnings. DEV has its own pair. There is no fallback
+      # id — an unset variable means that message is simply not sent, never
+      # "send it to whichever channel was hardcoded last"
+      # (dash-gate/lib/slack-channels.mjs).
+      SLACK_CHANNEL_LOGS: C0C4A7FERNY
+      SLACK_CHANNEL_ERRORS: C0C46NS5CP8
+      # Where every Slack link points. The Hub's pacing LIST, not one pacing:
+      # the Hub reaches a pacing through router state rather than an address,
+      # so there is no per-pacing URL to link to yet (dash-gate/lib/hub-links.mjs
+      # explains why a made-up one would be worse than none — the Hub's router
+      # redirects unknown paths to its home page, so a dead link looks alive).
+      HUB_BASE_URL: https://dfjozbcz9mj59.cloudfront.net
