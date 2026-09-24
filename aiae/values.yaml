@@ -135,9 +135,17 @@ services:
       REFRESH_SOURCE: direct
       DAILY_BUILD_SOURCE: direct
       NS_MASTER_SOURCE: direct
-      # OFF. Nothing competes with an in-process cron here, but an unattended
-      # nightly BigQuery fan-out is not switched on silently.
-      DAILY_BUILD_SCHEDULE_ENABLED: "false"
+      # ON since the Slack path was proven end to end here: a manual refresh
+      # rebuilt a pacing and its owner got the summary. Until then this stayed
+      # off because an unattended nightly BigQuery fan-out is not something to
+      # switch on before anything downstream of it works — it would have spent
+      # the query budget to deliver nothing.
+      #
+      # Nothing competes with it: n8n is not deployed here, and its own "Pacing
+      # Daily Build" workflow was deleted on 2026-09-21. Fires at 18:15
+      # Asia/Bangkok (11:15 UTC, no DST), refreshing every Live pacing and
+      # sending each owner their summary.
+      DAILY_BUILD_SCHEDULE_ENABLED: "true"
       SHEET_SOURCE_ACCOUNT_EMAIL: mpo-pacing@aidigital.com
       # Slack channels for operational telemetry: build results, failed
       # refreshes, sheet warnings. DEV has its own pair. There is no fallback
