@@ -118,6 +118,14 @@ secretEnv:
     TOKEN_SECRET: TOKEN_SECRET
     N8N_WEBHOOK_SECRET: N8N_WEBHOOK_SECRET
     GOOGLE_SERVICE_ACCOUNT_JSON: GOOGLE_SERVICE_ACCOUNT_JSON
+    # Slack, and the application container only. It sends two unrelated kinds of
+    # message: operational telemetry to the channels named by SLACK_CHANNEL_LOGS
+    # / SLACK_CHANNEL_ERRORS, and each person's own pacing summary as a DM. The
+    # summary path also needs the token to turn an employee's email into their
+    # Slack id (users.lookupByEmail) — which is the ONLY way anyone becomes a
+    # recipient, because the Hub's user sync does not carry Slack ids. Scopes:
+    # chat:write, chat:write.public, users:read, users:read.email.
+    SLACK_BOT_TOKEN: SLACK_BOT_TOKEN
   builder:
     N8N_WEBHOOK_SECRET: N8N_WEBHOOK_SECRET
   fetcher:
@@ -136,16 +144,26 @@ secretsManager:
     - TOKEN_SECRET
     - N8N_WEBHOOK_SECRET
     - GOOGLE_SERVICE_ACCOUNT_JSON
+    - SLACK_BOT_TOKEN
 
-  # SLACK_BOT_TOKEN, OPENROUTER_API_KEY and OPENROUTER_MODEL are deliberately
-  # absent. They are genuinely optional in the code — Slack posting is swallowed
-  # by safeSlackPost, and the mapping suggester reads the OpenRouter pair at
-  # request time and answers 503 without them (api-routes.mjs: "the two vars are
-  # optional"). But a key listed here MUST exist in the secret: the CSI driver
-  # resolves each one by jmesPath and fails the whole volume mount when a path
-  # is not found, which would leave the pod unable to start rather than merely
-  # without Slack. Adding either feature means adding the key here AND to the
-  # secret, together.
+  # ORDER OF OPERATIONS, and it is not optional: a key listed here MUST already
+  # exist in the AWS secret before this file names it. The CSI driver resolves
+  # every key by jmesPath and fails the WHOLE volume mount when one path is
+  # missing — so naming a key that is not in the secret yet does not merely
+  # leave the feature off, it stops the pod from starting at all. Add the key to
+  # the secret first, then here.
+  #
+  # SLACK_BOT_TOKEN was added once Slack delivery became real: the pacing
+  # summary is sent from this service now (dash-gate/lib/personal-summary.mjs,
+  # the in-process port of the n8n pacing-personal-summary workflow), and n8n is
+  # not deployed here. Without the token nothing is sent and nothing errors —
+  # safeSlackPost swallows it — which is a silence indistinguishable from "no
+  # alerts today", so its absence is not a safe default any more.
+  #
+  # OPENROUTER_API_KEY and OPENROUTER_MODEL are still deliberately absent. The
+  # mapping suggester reads them per request and answers 503 without them, and
+  # that failure IS visible to whoever pressed the button. Adding them means
+  # adding to the secret and to this list, together.
 
   # The RDS-managed master secret. Mounted ONLY by the migration Job: it
   # applies the schema and reconciles the application's own database role, and
