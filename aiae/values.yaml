@@ -28,7 +28,7 @@ source:
   # Updated by the AIAE-presentation-builder DEV workflow on every deployment.
   # The placeholder below is never read: the child application stays disabled
   # until that workflow has written a real one.
-  presentationBuilderVersionsRevision: "4adce30efee64f75f8e4229c23faedbff9ed589e"
+  presentationBuilderVersionsRevision: "dbf9ca541ffcb1f14ce27c2f4af4c6a5dabc27d7"
 services:
   operationalHubApi:
     enabled: true
@@ -216,7 +216,6 @@ services:
       # auto-shared with as a writer. Unchanged from the live Replit deployment.
       APP_ADMIN_EMAILS: alex.turner@aidigital.com
       SLIDES_SHARE_WITH_EMAILS: alex.turner@aidigital.com
-
       # ── Deck templates ───────────────────────────────────────────────────
       # The NEW template set, which is what DEV is for. On Replit the workspace
       # and the published app share one environment, so these could only be
@@ -227,7 +226,6 @@ services:
       SLIDES_TEMPLATE_ID: 15ryPctwlmTy2uCpjrVjR1kVJErnpvQ9wXnF7IAka-OM
       TACTIC_MASTER_SLIDE_OBJECT_ID: p8
       THOUGHTS_MASTER_SLIDE_OBJECT_ID: g3f6fd96d9b2_1_0
-
       # One chart-source workbook per type, each with its own in-sheet chart id.
       # The workbook id doubles as the key that finds that chart on a duplicated
       # tactic slide, so the three must stay three distinct files.
@@ -237,14 +235,12 @@ services:
       DAILY_CHART_ID_IN_SHEET: "510717191"
       MONTHLY_CHART_ID_IN_SHEET: "510717191"
       DIST_CHART_ID_IN_SHEET: "1431807138"
-
       # Master slides duplicated per tactic for the Step-3 breakdown sections.
       BREAKDOWN_MASTER_SLIDE_TP: p9
       BREAKDOWN_MASTER_SLIDE_CA: p10
       BREAKDOWN_MASTER_SLIDE_AUD: p11
       BREAKDOWN_MASTER_SLIDE_GEO: p13
       BREAKDOWN_MASTER_SLIDE_DEV: p14
-
       # Platform group slides and their 7-row tables, deleted or row-trimmed by
       # the tactic trim when a group has no tactics left.
       RESULTS_SLIDE_OBJECT_ID_1: p7
@@ -255,7 +251,6 @@ services:
       SUMMARY_TABLE_OBJECT_ID_2: g3f6fd96d9b2_1_143
       SUMMARY_TABLE_OBJECT_ID_3: g3f6fd96d9b2_1_157
       SUMMARY_TABLE_OBJECT_ID_4: g3f6fd96d9b2_1_171
-
       # The EOM deck and the workbook that fills it. These two are a pair: the
       # workbook carries the tables slides 3-8 of this deck read, and pointing
       # the deck at the previous workbook is what left the Sheet step cloning
@@ -270,7 +265,6 @@ services:
       # standing in front of the breakdown masters. Matched by text because it
       # has no token to key on.
       EOM_DROP_SLIDE_TITLES: SLIDES LIBRARY
-
       # Per-tactic breakdown charts, keyed by series. The audience slide carries
       # two charts, so age and top-segments each get their own workbook.
       BREAKDOWN_AUD_SOURCE_SHEET_ID: 1K4XeQcIngAoYckwim7DWpA14pWC4ssuSypuUccA8kQc
