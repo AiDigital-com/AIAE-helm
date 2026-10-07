@@ -169,12 +169,11 @@ services:
       # redirects unknown paths to its home page, so a dead link looks alive).
       HUB_BASE_URL: https://dfjozbcz9mj59.cloudfront.net
   presentationBuilderApi:
-    # Stays false until the first DEV workflow run publishes real image tags and
-    # repins presentationBuilderVersionsRevision. Enabling it before that points
-    # Argo CD at a tag that does not exist in ECR, and it sits Degraded on
-    # ImagePullBackOff — which is what happened to the Onboarding Platform and to
-    # Pacing, and why both were registered disabled first.
-    enabled: false
+    # Enabled after the first successful DEV workflow run published real image
+    # tags and repinned presentationBuilderVersionsRevision; before that the
+    # child application was registered disabled, because pointing Argo CD at a
+    # tag that does not exist in ECR leaves it Degraded on ImagePullBackOff.
+    enabled: true
     imageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
     liquibaseImageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
     iamRoleArn: arn:aws:iam::496336474487:role/aiae-presentation-builder-dev-application
