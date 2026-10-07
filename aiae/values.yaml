@@ -21,6 +21,14 @@ source:
   paicingChartRevision: "378beb1edf0b79050f15ee7c0fdfcc95b9ec74bf"
   # Updated by the AIAE-paicing DEV workflow on every deployment.
   paicingVersionsRevision: "a3686a2445cc606d547e6c580a8657b39b607c35"
+  # Chart revision the Presentation Builder was tested against. Its own key for
+  # the same reason as the two above: raising a shared pin would re-sync a live
+  # application that was never tested against the new chart.
+  presentationBuilderChartRevision: "5aa870c67a58bb293b4378d64f90c0fb30d5c7c8"
+  # Updated by the AIAE-presentation-builder DEV workflow on every deployment.
+  # The placeholder below is never read: the child application stays disabled
+  # until that workflow has written a real one.
+  presentationBuilderVersionsRevision: "4adce30efee64f75f8e4229c23faedbff9ed589e"
 services:
   operationalHubApi:
     enabled: true
@@ -160,3 +168,114 @@ services:
       # explains why a made-up one would be worse than none — the Hub's router
       # redirects unknown paths to its home page, so a dead link looks alive).
       HUB_BASE_URL: https://dfjozbcz9mj59.cloudfront.net
+  presentationBuilderApi:
+    # Stays false until the first DEV workflow run publishes real image tags and
+    # repins presentationBuilderVersionsRevision. Enabling it before that points
+    # Argo CD at a tag that does not exist in ECR, and it sits Degraded on
+    # ImagePullBackOff — which is what happened to the Onboarding Platform and to
+    # Pacing, and why both were registered disabled first.
+    enabled: false
+    imageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
+    liquibaseImageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
+    iamRoleArn: arn:aws:iam::496336474487:role/aiae-presentation-builder-dev-application
+    secretName: AIAE-DEV/aiae-presentation-builder
+    databaseCredentialsSecretArn: arn:aws:secretsmanager:us-east-1:496336474487:secret:rds!db-e2a3bd26-1511-4b49-9f18-9d15af791936-995ytC
+    host: ""
+    replicaCount: 1
+    minReplicas: 1
+    maxReplicas: 1
+    # A single-replica DEV deployment gains nothing from a PodDisruptionBudget,
+    # and minAvailable=1 against 1 replica makes the pod non-evictable, which
+    # blocks EKS Auto Mode from consolidating or recycling the node.
+    podDisruptionBudgetEnabled: false
+    config:
+      SPRING_PROFILES_ACTIVE: eks
+      PORT: "5000"
+      MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
+      APP_SERVICE_NAME: aiae-presentation-builder
+      # Matched EXACTLY against the JWT azp claim: ClerkJwtClaimsValidator uses
+      # List.contains, with no wildcards. This is the generated CloudFront
+      # domain, which is the DEV product URL.
+      AUTH_AUTHORIZED_PARTIES: "https://d1jhayzxfc8kbc.cloudfront.net"
+      # The wildcard escape hatch exists for the ephemeral Replit preview
+      # hostnames and must stay empty here, or the exact match above stops
+      # being exact.
+      AUTH_AUTHORIZED_PARTY_PATTERNS: ""
+      AUTH_ALLOWED_EMAIL_DOMAIN: aidigital.com
+      APP_SECURITY_CORS_ALLOWED_ORIGINS: "https://d1jhayzxfc8kbc.cloudfront.net"
+      APP_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://d1jhayzxfc8kbc.cloudfront.net"
+      # ARN of the RDS-managed secret, read by the AWS Advanced JDBC Wrapper at
+      # connection time so a rotation never reaches the application.
+      DB_MASTER_SECRET_ID: arn:aws:secretsmanager:us-east-1:496336474487:secret:rds!db-e2a3bd26-1511-4b49-9f18-9d15af791936-995ytC
+      # db.t3.small has a small max_connections budget that the migration Job
+      # also draws on.
+      DB_MAX_POOL_SIZE: "10"
+      USAGE_LOG_SERVICE_NAME: aiae-presentation-builder
+      USAGE_LOG_ENVIRONMENT: dev
+      # Admin allow-list and the addresses every generated deck and sheet is
+      # auto-shared with as a writer. Unchanged from the live Replit deployment.
+      APP_ADMIN_EMAILS: alex.turner@aidigital.com
+      SLIDES_SHARE_WITH_EMAILS: alex.turner@aidigital.com
+
+      # ── Deck templates ───────────────────────────────────────────────────
+      # The NEW template set, which is what DEV is for. On Replit the workspace
+      # and the published app share one environment, so these could only be
+      # tested by having scripts/lib/deploy-env.sh overwrite them at boot for the
+      # published app. Here DEV and PROD are separate ConfigMaps, so the new deck
+      # can be exercised without any chance of reaching production: PROD will
+      # carry the previous ids until this one is signed off.
+      SLIDES_TEMPLATE_ID: 15ryPctwlmTy2uCpjrVjR1kVJErnpvQ9wXnF7IAka-OM
+      TACTIC_MASTER_SLIDE_OBJECT_ID: p8
+      THOUGHTS_MASTER_SLIDE_OBJECT_ID: g3f6fd96d9b2_1_0
+
+      # One chart-source workbook per type, each with its own in-sheet chart id.
+      # The workbook id doubles as the key that finds that chart on a duplicated
+      # tactic slide, so the three must stay three distinct files.
+      DAILY_CHART_TEMPLATE_SHEET_ID: 1LjtiI83T_0-v64CsoANTIjDzinipBk5ELe7NVzO5r2A
+      MONTHLY_CHART_TEMPLATE_SHEET_ID: 1r4aI3ToKfZ7W_TfVNokdShp91mXFIiA2eLy8PmTx4oI
+      DIST_CHART_TEMPLATE_SHEET_ID: 1fzG6Uuu2U1E3w0lnXGKO0TERYb59LkmSNSBgVR9DPtw
+      DAILY_CHART_ID_IN_SHEET: "510717191"
+      MONTHLY_CHART_ID_IN_SHEET: "510717191"
+      DIST_CHART_ID_IN_SHEET: "1431807138"
+
+      # Master slides duplicated per tactic for the Step-3 breakdown sections.
+      BREAKDOWN_MASTER_SLIDE_TP: p9
+      BREAKDOWN_MASTER_SLIDE_CA: p10
+      BREAKDOWN_MASTER_SLIDE_AUD: p11
+      BREAKDOWN_MASTER_SLIDE_GEO: p13
+      BREAKDOWN_MASTER_SLIDE_DEV: p14
+
+      # Platform group slides and their 7-row tables, deleted or row-trimmed by
+      # the tactic trim when a group has no tactics left.
+      RESULTS_SLIDE_OBJECT_ID_1: p7
+      RESULTS_SLIDE_OBJECT_ID_2: g3f6fd96d9b2_1_139
+      RESULTS_SLIDE_OBJECT_ID_3: g3f6fd96d9b2_1_153
+      RESULTS_SLIDE_OBJECT_ID_4: g3f6fd96d9b2_1_167
+      SUMMARY_TABLE_OBJECT_ID_1: p7_i467
+      SUMMARY_TABLE_OBJECT_ID_2: g3f6fd96d9b2_1_143
+      SUMMARY_TABLE_OBJECT_ID_3: g3f6fd96d9b2_1_157
+      SUMMARY_TABLE_OBJECT_ID_4: g3f6fd96d9b2_1_171
+
+      # The EOM deck and the workbook that fills it. These two are a pair: the
+      # workbook carries the tables slides 3-8 of this deck read, and pointing
+      # the deck at the previous workbook is what left the Sheet step cloning
+      # the wrong file for a commit.
+      EOM_SLIDES_TEMPLATE_ID: 1ZUPEEEnKdbgehkSmyok6usc5onXO04YHkQelbsmJdC0
+      EOM_SHEETS_TEMPLATE_ID: 1zQOMfuHDqfJedcQl4IzHonRpBfPtMdLtivwlxWV9Yjo
+      # Empty on purpose: the two ids the application defaults to are EOC-template
+      # ids, and p6/p17 exist in the EOM template as unrelated slides — keeping
+      # them would delete two arbitrary slides from every EOM deck.
+      EOM_DROP_SLIDE_OBJECT_IDS: ""
+      # The one slide the EOM template carries that must never ship: the divider
+      # standing in front of the breakdown masters. Matched by text because it
+      # has no token to key on.
+      EOM_DROP_SLIDE_TITLES: SLIDES LIBRARY
+
+      # Per-tactic breakdown charts, keyed by series. The audience slide carries
+      # two charts, so age and top-segments each get their own workbook.
+      BREAKDOWN_AUD_SOURCE_SHEET_ID: 1K4XeQcIngAoYckwim7DWpA14pWC4ssuSypuUccA8kQc
+      BREAKDOWN_AUD_CHART_ID: "522266257"
+      BREAKDOWN_AUD_SEG_SOURCE_SHEET_ID: 1PAurz6x7NC_35A1HKllbhSgfk5wvncN_oRnFraGy2r8
+      BREAKDOWN_AUD_SEG_CHART_ID: "522266257"
+      BREAKDOWN_DEV_SOURCE_SHEET_ID: 1kDdh68zWxrujlW0dbhsNmLS5xu9jT3KbfjtbvbRBVvc
+      BREAKDOWN_DEV_CHART_ID: "522266257"
