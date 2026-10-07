@@ -1,0 +1,148 @@
+nameOverride: aiae-presentation-builder-api
+environment: dev
+namespace: aiae-dev
+deploymentRevision: ""
+
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+containerPort: 5000
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+config:
+  SPRING_PROFILES_ACTIVE: eks
+  PORT: "5000"
+  MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
+
+# CLERK_SECRET_KEY IS projected here, unlike the Onboarding Platform's chart
+# this one was modelled on: ClerkOAuthTokenService is conditional on it and
+# exchanges the signed-in user's Clerk session for the Google OAuth token that
+# Slides and Sheets calls are made with. Without it the application still starts
+# and still generates decks — using the service account alone, so they are not
+# created in the caller's own Drive and source spreadsheets cannot be read with
+# the caller's account.
+#
+# GOOGLE_SERVICE_ACCOUNT_JSON is the one that cannot be left out:
+# GoogleCredentialsFactory is conditional on it and every Real* Slides and
+# Sheets provider is @ConditionalOnBean of that factory, so a blank value leaves
+# the application on stub providers — it starts cleanly and generates nothing.
+#
+# There is no OPENAI_API_KEY and no storage bucket: this application's artifacts
+# live in Google Slides and Sheets, and its only model is Claude.
+#
+# POSTGRES_USER and POSTGRES_PASSWORD are still projected as environment
+# variables, but they no longer come from this application's own secret: they
+# come from the RDS-managed secret below, which is their owner.
+#
+# The eks profile ignores them — it reads the credentials through the JDBC
+# wrapper instead, because an environment variable cannot follow a rotation:
+# it is fixed for the lifetime of the container. They stay for one reason: a
+# chart revision and an image tag are pinned separately, so a cluster can
+# briefly run the previous image against this chart. That image still expects
+# these variables, and removing them here would break it. Sourcing them from
+# the owning secret keeps both images working while removing the hand-copied
+# duplicate that caused the September 2026 outages.
+secretEnv:
+  POSTGRES_HOST: POSTGRES_HOST
+  POSTGRES_PORT: POSTGRES_PORT
+  POSTGRES_DB: POSTGRES_DB
+  POSTGRES_USER: POSTGRES_USER
+  POSTGRES_PASSWORD: POSTGRES_PASSWORD
+  CLERK_PUBLISHABLE_KEY: CLERK_PUBLISHABLE_KEY
+  CLERK_SECRET_KEY: CLERK_SECRET_KEY
+  ANTHROPIC_API_KEY: ANTHROPIC_API_KEY
+  GOOGLE_SERVICE_ACCOUNT_JSON: GOOGLE_SERVICE_ACCOUNT_JSON
+
+secretsManager:
+  enabled: true
+  awsSecretName: ""
+  keys:
+    - POSTGRES_HOST
+    - POSTGRES_PORT
+    - POSTGRES_DB
+    - CLERK_PUBLISHABLE_KEY
+    - CLERK_SECRET_KEY
+    - ANTHROPIC_API_KEY
+    - GOOGLE_SERVICE_ACCOUNT_JSON
+
+  # The RDS-managed master user secret: the single owner of the database
+  # credentials. AWS rotates it every seven days and that schedule cannot be
+  # turned off while RDS manages the password, so nothing may hold a second
+  # copy — a copy is what broke this application, and Operational Hub, in
+  # September 2026.
+  #
+  # Two consumers, both reading this same secret:
+  #   * the application, through the AWS Advanced JDBC Wrapper, which refetches
+  #     the secret and retries whenever PostgreSQL rejects a login. Its ARN
+  #     reaches the application as DB_MASTER_SECRET_ID in the ConfigMap.
+  #   * the Liquibase PreSync Job, through the files below. A Job pod is created
+  #     fresh for every sync, so its mount is always current.
+  #
+  # awsSecretName is the secret ARN, from the Terraform output
+  # presentation_builder_database_master_secret_arn. Keys map a field of the secret's JSON
+  # to the file name it is projected as.
+  databaseCredentialsSecret:
+    awsSecretName: ""
+    keys:
+      username: POSTGRES_USER
+      password: POSTGRES_PASSWORD
+
+liquibase:
+  enabled: true
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+  activeDeadlineSeconds: 900
+  backoffLimit: 1
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 65
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+probes:
+  startupPath: /actuator/health/readiness
+  livenessPath: /actuator/health/liveness
+  readinessPath: /actuator/health/readiness
+  startupFailureThreshold: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+ingress:
+  enabled: false
+  className: alb
+  annotations: {}
+  hosts: []
+  tls: []

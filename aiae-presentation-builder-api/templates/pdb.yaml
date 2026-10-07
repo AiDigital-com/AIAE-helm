@@ -1,0 +1,14 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "aiae-presentation-builder-api.name" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "aiae-presentation-builder-api.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "aiae-presentation-builder-api.selectorLabels" . | nindent 6 }}
+{{- end }}
