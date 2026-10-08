@@ -216,59 +216,26 @@ services:
       APP_ADMIN_EMAILS: alex.turner@aidigital.com
       SLIDES_SHARE_WITH_EMAILS: alex.turner@aidigital.com
       # ── Deck templates ───────────────────────────────────────────────────
-      # The NEW template set, which is what DEV is for. On Replit the workspace
-      # and the published app share one environment, so these could only be
-      # tested by having scripts/lib/deploy-env.sh overwrite them at boot for the
-      # published app. Here DEV and PROD are separate ConfigMaps, so the new deck
-      # can be exercised without any chance of reaching production: PROD will
-      # carry the previous ids until this one is signed off.
-      SLIDES_TEMPLATE_ID: 15ryPctwlmTy2uCpjrVjR1kVJErnpvQ9wXnF7IAka-OM
-      TACTIC_MASTER_SLIDE_OBJECT_ID: p8
-      THOUGHTS_MASTER_SLIDE_OBJECT_ID: g3f6fd96d9b2_1_0
-      # One chart-source workbook per type, each with its own in-sheet chart id.
-      # The workbook id doubles as the key that finds that chart on a duplicated
-      # tactic slide, so the three must stay three distinct files.
-      DAILY_CHART_TEMPLATE_SHEET_ID: 1LjtiI83T_0-v64CsoANTIjDzinipBk5ELe7NVzO5r2A
-      MONTHLY_CHART_TEMPLATE_SHEET_ID: 1r4aI3ToKfZ7W_TfVNokdShp91mXFIiA2eLy8PmTx4oI
-      DIST_CHART_TEMPLATE_SHEET_ID: 1fzG6Uuu2U1E3w0lnXGKO0TERYb59LkmSNSBgVR9DPtw
-      DAILY_CHART_ID_IN_SHEET: "510717191"
-      MONTHLY_CHART_ID_IN_SHEET: "510717191"
-      DIST_CHART_ID_IN_SHEET: "1431807138"
-      # Master slides duplicated per tactic for the Step-3 breakdown sections.
-      BREAKDOWN_MASTER_SLIDE_TP: p9
-      BREAKDOWN_MASTER_SLIDE_CA: p10
-      BREAKDOWN_MASTER_SLIDE_AUD: p11
-      BREAKDOWN_MASTER_SLIDE_GEO: p13
-      BREAKDOWN_MASTER_SLIDE_DEV: p14
-      # Platform group slides and their 7-row tables, deleted or row-trimmed by
-      # the tactic trim when a group has no tactics left.
-      RESULTS_SLIDE_OBJECT_ID_1: p7
-      RESULTS_SLIDE_OBJECT_ID_2: g3f6fd96d9b2_1_139
-      RESULTS_SLIDE_OBJECT_ID_3: g3f6fd96d9b2_1_153
-      RESULTS_SLIDE_OBJECT_ID_4: g3f6fd96d9b2_1_167
-      SUMMARY_TABLE_OBJECT_ID_1: p7_i467
-      SUMMARY_TABLE_OBJECT_ID_2: g3f6fd96d9b2_1_143
-      SUMMARY_TABLE_OBJECT_ID_3: g3f6fd96d9b2_1_157
-      SUMMARY_TABLE_OBJECT_ID_4: g3f6fd96d9b2_1_171
-      # The EOM deck and the workbook that fills it. These two are a pair: the
-      # workbook carries the tables slides 3-8 of this deck read, and pointing
-      # the deck at the previous workbook is what left the Sheet step cloning
-      # the wrong file for a commit.
-      EOM_SLIDES_TEMPLATE_ID: 1ZUPEEEnKdbgehkSmyok6usc5onXO04YHkQelbsmJdC0
-      EOM_SHEETS_TEMPLATE_ID: 1zQOMfuHDqfJedcQl4IzHonRpBfPtMdLtivwlxWV9Yjo
-      # Empty on purpose: the two ids the application defaults to are EOC-template
-      # ids, and p6/p17 exist in the EOM template as unrelated slides — keeping
-      # them would delete two arbitrary slides from every EOM deck.
-      EOM_DROP_SLIDE_OBJECT_IDS: ""
-      # The one slide the EOM template carries that must never ship: the divider
-      # standing in front of the breakdown masters. Matched by text because it
-      # has no token to key on.
-      EOM_DROP_SLIDE_TITLES: SLIDES LIBRARY
-      # Per-tactic breakdown charts, keyed by series. The audience slide carries
-      # two charts, so age and top-segments each get their own workbook.
-      BREAKDOWN_AUD_SOURCE_SHEET_ID: 1K4XeQcIngAoYckwim7DWpA14pWC4ssuSypuUccA8kQc
-      BREAKDOWN_AUD_CHART_ID: "522266257"
-      BREAKDOWN_AUD_SEG_SOURCE_SHEET_ID: 1PAurz6x7NC_35A1HKllbhSgfk5wvncN_oRnFraGy2r8
-      BREAKDOWN_AUD_SEG_CHART_ID: "522266257"
-      BREAKDOWN_DEV_SOURCE_SHEET_ID: 1kDdh68zWxrujlW0dbhsNmLS5xu9jT3KbfjtbvbRBVvc
-      BREAKDOWN_DEV_CHART_ID: "522266257"
+      # Deliberately not set here. Every template id, master-slide object id and
+      # chart id this application needs already has a default in
+      # application.yml, and those defaults are exactly what the published
+      # Replit deployment runs on: scripts/lib/deploy-env.sh overrides only the
+      # two EOM keys, and it pins them back to the same application.yml values.
+      #
+      # DEV briefly carried the NEW template set instead, copied from
+      # scripts/lib/new-template-env.sh, which is the Replit *workspace* profile.
+      # Generation failed on every attempt: copying EOM_SHEETS_TEMPLATE_ID
+      # 1zQOMfu... returned 404 File not found, eight retries deep, before Claude
+      # or Slides were reached. The new workbook is not readable by the account
+      # this deployment copies as. The other 31 ids would have failed after it —
+      # object ids address slides inside one specific deck, so p7/p8/g3f6fd96...
+      # do not exist in the deck the defaults name.
+      #
+      # Setting them again would also duplicate values that already live in
+      # application.yml, and the copy is what drifts. Leave them unset so DEV
+      # follows the application's own defaults, which is what "behaves like the
+      # Replit production app" means.
+      #
+      # To try the new template set again: share the workbook and deck with the
+      # service account first, confirm a copy succeeds, and add the full set back
+      # together — the ids are one coherent group, not independent switches.
