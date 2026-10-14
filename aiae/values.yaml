@@ -10,7 +10,7 @@ source:
   helmRepositoryUrl: ""
   versionsRepositoryUrl: ""
   chartRevision: "5d10fa722ecd3219f7b25cd7f80be7ef1b5bba96"
-  operationalHubVersionsRevision: "f7543cd49fc54252be62e10bfc8e86d30147c99b"
+  operationalHubVersionsRevision: "ce0afccd28136d8d8dd84b8d906940bcbe376f0b"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
   aiaeOnboardingChartRevision: "0e2b1ee7f2d810360e7d2f3067d3d107e71b0726"
