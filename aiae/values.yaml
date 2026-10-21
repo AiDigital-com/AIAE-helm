@@ -47,6 +47,19 @@ services:
       BIGQUERY_LOCATION: US
       BIGQUERY_DATASET: netsuite
       USAGE_LOG_ENVIRONMENT: prod
+      # Pacing runs in this same namespace, so the call stays inside the
+      # cluster: no trip out to the ALB and back, no dependency on the public
+      # endpoint. The Service listens on 80 and forwards to dash-gate's 3000,
+      # which is why no port appears here.
+      #
+      # The other PACING_* variables the Hub reads keep their compiled-in
+      # defaults, as they do in DEV. The one value NOT here is the HMAC key both
+      # sides sign with: it reaches this pod as PACING_ASSERTION_SECRET from
+      # AIAE-PRD/operational-hub, and its twin is HUB_ASSERTION_SECRET in
+      # AIAE-PRD/aiae-paicing. Verified identical on 2026-10-21; if they ever
+      # diverge, Pacing answers 401 to every call and the symptom reads as a
+      # broken integration rather than as a wrong key.
+      PACING_BASE_URL: http://aiae-paicing-api.aiae-prod.svc.cluster.local
   aiaeOnboardingApi:
     enabled: true
     imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
