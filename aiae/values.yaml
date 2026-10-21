@@ -16,6 +16,11 @@ source:
   aiaeOnboardingChartRevision: "0e2b1ee7f2d810360e7d2f3067d3d107e71b0726"
   # Updated by release-prod.yml on every production release.
   aiaeOnboardingVersionsRevision: "12b5e879600a482352c7ae6c65771c07a04f5d08"
+  # Chart revision Pacing was tested against. Its own key for the same reason as
+  # the two above: raising a shared pin would re-sync a live application.
+  paicingChartRevision: "5aa870c67a58bb293b4378d64f90c0fb30d5c7c8"
+  # Updated by gitops-prod-deploy-manual.yml on every production release.
+  paicingVersionsRevision: "REPLACED_BY_FIRST_PROD_RELEASE"
 services:
   operationalHubApi:
     enabled: true
@@ -100,3 +105,67 @@ services:
       YOUTUBE_ENABLED: "true"
       USAGE_LOG_SERVICE_NAME: aiae-onboarding
       USAGE_LOG_ENVIRONMENT: prod
+  paicingApi:
+    # Stays false until gitops-prod-deploy-manual.yml has published real
+    # production image tags and repinned paicingVersionsRevision. Enabling it
+    # before that points the child Application at a versions commit holding DEV
+    # snapshot tags, which do not exist in this account's ECR: Argo CD would sit
+    # Degraded on ImagePullBackOff.
+    #
+    # Three config values are still missing below and must be filled before this
+    # is flipped - see the comments at SLACK_CHANNEL_LOGS and
+    # SHEET_SOURCE_ACCOUNT_EMAIL.
+    enabled: false
+    imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/paicing-application
+    iamRoleArn: arn:aws:iam::125093118532:role/aiae-paicing-prod-application
+    # Separate role: only the migration Job may read the RDS master credentials.
+    migrateIamRoleArn: arn:aws:iam::125093118532:role/aiae-paicing-prod-migrate
+    secretName: AIAE-PRD/aiae-paicing
+    databaseCredentialsSecretArn: arn:aws:secretsmanager:us-east-1:125093118532:secret:rds!db-9e05cb79-6677-4af8-b362-4b1bdbd55c36-TNSMWF
+    host: ""
+    # One, and not a tuning choice: the three containers share a ReadWriteOnce
+    # volume, which only one node can mount. Unlike the other two applications
+    # here, this one cannot be given a second replica.
+    replicaCount: 1
+    storageClassName: ebs-gp3
+    # 20Gi on evidence, not by analogy with DEV: the full legacy set of 1340
+    # pacings occupies 2.5 GB there, 13% of the volume. allowVolumeExpansion is
+    # on, so this can grow without recreating the claim.
+    storageSize: 20Gi
+    config:
+      NODE_ENV: production
+      PORT: "3000"
+      DASH_ROOT: /dashboards
+      DATA_DIR: /dashboards/data
+      # Loopback: the three containers share a network namespace. Without these
+      # dash-gate would look for the Docker Compose service names.
+      BQ_FETCHER_URL: http://127.0.0.1:3200/fetch
+      PACING_BUILDER_BASE_URL: http://127.0.0.1:3100
+      BQ_PROJECT_ID: aiae-493511
+      # n8n is decommissioned; every workflow runs in-process inside dash-gate.
+      REFRESH_SOURCE: direct
+      DAILY_BUILD_SOURCE: direct
+      NS_MASTER_SOURCE: direct
+      # ON from the start, by owner decision (2026-10-21): production runs its own
+      # Slack bot and its own Google account, so it neither writes the old
+      # system's sheets nor sends from its identity. What a separate bot does NOT
+      # prevent is the same owner receiving two summaries while the old system is
+      # still sending, and both systems spending the BigQuery budget on the same
+      # fan-out. Fires at 18:15 Asia/Bangkok (11:15 UTC, no DST).
+      DAILY_BUILD_SCHEDULE_ENABLED: "true"
+      # Where every Slack link points: the Hub's pacing LIST, not one pacing.
+      HUB_BASE_URL: https://aiae-operational-hub.aidigital.tech
+      # DELIBERATELY ABSENT until the production values exist. An unset channel
+      # means that message is simply not sent (dash-gate/lib/slack-channels.mjs);
+      # a placeholder would mean a failed Slack call on every build instead.
+      #   SLACK_CHANNEL_LOGS      operational telemetry: build results
+      #   SLACK_CHANNEL_ERRORS    failed refreshes, sheet warnings
+      # Also absent: SHEET_SOURCE_ACCOUNT_EMAIL, the address the Hub shows a user
+      # who must share a client spreadsheet with this service. Production gets its
+      # own Google account rather than reusing the old system's mpo-pacing@, and
+      # that account does not exist yet. Unset renders as null, not as a wrong
+      # address. The same account's credential is GOOGLE_SHEETS_OAUTH_JSON in
+      # AIAE-PRD/aiae-paicing, and it must be granted read on the reference
+      # "Master" sheet and on the client sheets six pacings read as a performance
+      # source, or those pacings lose that data at their next refresh
+      # (docs/legacy-import.md, "Cutover checklist").
