@@ -112,9 +112,8 @@ services:
     # snapshot tags, which do not exist in this account's ECR: Argo CD would sit
     # Degraded on ImagePullBackOff.
     #
-    # Three config values are still missing below and must be filled before this
-    # is flipped - see the comments at SLACK_CHANNEL_LOGS and
-    # SHEET_SOURCE_ACCOUNT_EMAIL.
+    # Two config values are still missing below and must be filled before this
+    # is flipped - see the comment at SLACK_CHANNEL_LOGS.
     enabled: false
     imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/paicing-application
     iamRoleArn: arn:aws:iam::125093118532:role/aiae-paicing-prod-application
@@ -160,12 +159,19 @@ services:
       # a placeholder would mean a failed Slack call on every build instead.
       #   SLACK_CHANNEL_LOGS      operational telemetry: build results
       #   SLACK_CHANNEL_ERRORS    failed refreshes, sheet warnings
-      # Also absent: SHEET_SOURCE_ACCOUNT_EMAIL, the address the Hub shows a user
-      # who must share a client spreadsheet with this service. Production gets its
-      # own Google account rather than reusing the old system's mpo-pacing@, and
-      # that account does not exist yet. Unset renders as null, not as a wrong
-      # address. The same account's credential is GOOGLE_SHEETS_OAUTH_JSON in
-      # AIAE-PRD/aiae-paicing, and it must be granted read on the reference
-      # "Master" sheet and on the client sheets six pacings read as a performance
-      # source, or those pacings lose that data at their next refresh
+      # The address the Hub shows a user who must share a client spreadsheet with
+      # this service. Production runs on its own Google account rather than
+      # reusing the old system's mpo-pacing@, so this is NOT the address the old
+      # system prints. The same account's credential is GOOGLE_SHEETS_OAUTH_JSON
+      # in AIAE-PRD/aiae-paicing - a USER refresh token, not a service account,
+      # because the Pacings folder lives in that account's own Drive.
+      #
+      # That account must be granted READ on what mpo-pacing@ reads today, or the
+      # pacings depending on it lose that data at their next refresh: the
+      # reference "Master" sheet (NSMapping / Margin / KPI, read by
+      # reference-sync.mjs) and the client sheets used as a performance source -
+      # six pacings on 2026-10-16. List them before the switch with
+      #   SELECT dash_slug, config_json->'data'->'sheet'->>'spreadsheet_id'
+      #   FROM access.pacings WHERE config_json->'data' ? 'sheet';
       # (docs/legacy-import.md, "Cutover checklist").
+      SHEET_SOURCE_ACCOUNT_EMAIL: mpo-pacing-prod@aidigital.com
