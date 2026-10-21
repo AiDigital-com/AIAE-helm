@@ -119,12 +119,13 @@ services:
       USAGE_LOG_SERVICE_NAME: aiae-onboarding
       USAGE_LOG_ENVIRONMENT: prod
   paicingApi:
-    # Stays false until gitops-prod-deploy-manual.yml has published real
-    # production image tags and repinned paicingVersionsRevision. Enabling it
-    # before that points the child Application at a versions commit holding DEV
-    # snapshot tags, which do not exist in this account's ECR: Argo CD would sit
-    # Degraded on ImagePullBackOff.
-    enabled: false
+    # Enabled 2026-10-21, once gitops-prod-deploy-manual.yml had published real
+    # production image tags (1.0.0-0801669dd221 and its three siblings) and
+    # repinned paicingVersionsRevision at the versions commit carrying them.
+    # Before that the pin held a placeholder, and enabling it would have pointed
+    # the child Application at tags absent from this account's ECR: Argo CD would
+    # have sat Degraded on ImagePullBackOff.
+    enabled: true
     imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/paicing-application
     iamRoleArn: arn:aws:iam::125093118532:role/aiae-paicing-prod-application
     # Separate role: only the migration Job may read the RDS master credentials.
