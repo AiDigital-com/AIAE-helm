@@ -111,9 +111,6 @@ services:
     # before that points the child Application at a versions commit holding DEV
     # snapshot tags, which do not exist in this account's ECR: Argo CD would sit
     # Degraded on ImagePullBackOff.
-    #
-    # Two config values are still missing below and must be filled before this
-    # is flipped - see the comment at SLACK_CHANNEL_LOGS.
     enabled: false
     imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/paicing-application
     iamRoleArn: arn:aws:iam::125093118532:role/aiae-paicing-prod-application
@@ -154,11 +151,21 @@ services:
       DAILY_BUILD_SCHEDULE_ENABLED: "true"
       # Where every Slack link points: the Hub's pacing LIST, not one pacing.
       HUB_BASE_URL: https://aiae-operational-hub.aidigital.tech
-      # DELIBERATELY ABSENT until the production values exist. An unset channel
-      # means that message is simply not sent (dash-gate/lib/slack-channels.mjs);
-      # a placeholder would mean a failed Slack call on every build instead.
-      #   SLACK_CHANNEL_LOGS      operational telemetry: build results
-      #   SLACK_CHANNEL_ERRORS    failed refreshes, sheet warnings
+      # Operational telemetry, not user-facing: an owner's own pacing summary is a
+      # DM from personal-summary.mjs and never touches a channel. The ids are read
+      # from the environment precisely so DEV and PROD cannot post into each
+      # other's workspace - there is no fallback id, and an unset variable means
+      # "say nothing" (dash-gate/lib/slack-channels.mjs).
+      #
+      # The bot behind SLACK_BOT_TOKEN must be a member of both, or the post is
+      # dropped: safeSlackPost swallows the error, so a missing invite looks like
+      # silence rather than a failure.
+      #
+      #   logs    build finished, auto-complete, auto-archive
+      #   errors  refresh threw, stale data, empty or unmapped sheet tab,
+      #           delivery after flight end
+      SLACK_CHANNEL_LOGS: C0CAXV8G88N
+      SLACK_CHANNEL_ERRORS: C0CAZNHU03C
       # The address the Hub shows a user who must share a client spreadsheet with
       # this service. Production runs on its own Google account rather than
       # reusing the old system's mpo-pacing@, so this is NOT the address the old
