@@ -188,7 +188,7 @@ services:
       #   logs    build finished, auto-complete, auto-archive
       #   errors  refresh threw, stale data, empty or unmapped sheet tab,
       #           delivery after flight end
-      SLACK_CHANNEL_LOGS: C0CAXV8G88N
+      SLACK_CHANNEL_LOGS: C0CALL0H5RD
       SLACK_CHANNEL_ERRORS: C0CAZNHU03C
       # The address the Hub shows a user who must share a client spreadsheet with
       # this service. Production runs on its own Google account rather than
