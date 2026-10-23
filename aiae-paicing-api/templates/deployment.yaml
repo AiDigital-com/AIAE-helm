@@ -118,18 +118,15 @@ spec:
           volumeMounts:
             - name: dashboards
               mountPath: {{ .Values.persistence.mountPath }}
-              # dash-gate only READS the cache; pacing-builder owns writing it.
-              # This matches docker-compose.yml, which mounts the same path `:ro`.
-              #
-              # Known consequence, PRE-EXISTING and deliberately preserved here:
-              # api-routes.mjs unlinks <slug>.cm360.json when a pacing's
-              # third-party configuration is cleared. Against a read-only mount
-              # that call fails with EROFS, and its catch only ignores ENOENT —
-              # so the delete is logged and the orphaned file stays on disk. That
-              # is how production behaves today. Making this writable would fix
-              # it, but it is a behaviour change, not a migration step; do it
-              # deliberately or not at all.
-              readOnly: true
+              # WRITABLE, deliberately (2026-10-23). dash-gate writes here itself
+              # since the n8n lanes moved in-process (2026-10-09):
+              # sheet-source-fetch.mjs publishes <slug>.dim.<id>.json (a dimension
+              # source read from a client sheet), and api-routes.mjs unlinks
+              # <slug>.cm360.json when a pacing's third-party configuration is
+              # cleared. In the old system n8n did both, with this directory
+              # mounted read-write. Read-only, every sheet source failed with
+              # EROFS after the sheet had been read, so its tables kept the
+              # rows of the last import and went blank on any later day.
             {{- if .Values.secretsManager.enabled }}
             - name: secrets-store
               mountPath: /mnt/secrets-store
