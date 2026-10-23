@@ -183,6 +183,16 @@ spec:
         - name: bq-fetcher
           image: "{{ .Values.fetcher.image.repository }}:{{ .Values.fetcher.image.tag }}"
           imagePullPolicy: {{ .Values.fetcher.image.pullPolicy }}
+          # The dash-gate user, deliberately (2026-10-23). bq-fetcher creates
+          # each refresh's directory under .fetcher-staging, and dash-gate then
+          # writes into it: sheet-source-fetch.mjs stages sheet-page.json there
+          # for a pacing whose delivery comes from a client sheet. As root the
+          # directory was root-owned 755 and that write failed with EACCES, so
+          # every such pacing failed to refresh. In the old system n8n wrote
+          # that file under the same uid as bq-fetcher (1000 in compose).
+          securityContext:
+            runAsUser: 100
+            runAsGroup: 101
           ports:
             - name: fetcher
               containerPort: {{ .Values.fetcherPort }}
