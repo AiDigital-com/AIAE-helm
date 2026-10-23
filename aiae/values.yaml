@@ -28,7 +28,7 @@ source:
   aiaeOnboardingVersionsRevision: "12b5e879600a482352c7ae6c65771c07a04f5d08"
   # Chart revision Pacing was tested against. Its own key for the same reason as
   # the two above: raising a shared pin would re-sync a live application.
-  paicingChartRevision: "c7e72ee3d955305fb7ce7c2ad58e129c443c3f7d"
+  paicingChartRevision: "01eb335bc0746d1e70cd807146e6cc6f03776057"
   # Updated by gitops-prod-deploy-manual.yml on every production release.
   paicingVersionsRevision: "b38910ebb0a1234968736689d61b93a0f76e2372"
 services:
