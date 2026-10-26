@@ -20,7 +20,7 @@ source:
   # the one above: raising a shared pin would re-sync a live application.
   paicingChartRevision: "01eb335bc0746d1e70cd807146e6cc6f03776057"
   # Updated by the AIAE-paicing DEV workflow on every deployment.
-  paicingVersionsRevision: "e66bd4227d139cd3158fd11087f9fc2216e52f02"
+  paicingVersionsRevision: "0408616dfd49b96d4425cf9e6a0f6a2610d5ab1a"
   # Chart revision the Presentation Builder was tested against. Its own key for
   # the same reason as the two above: raising a shared pin would re-sync a live
   # application that was never tested against the new chart.
