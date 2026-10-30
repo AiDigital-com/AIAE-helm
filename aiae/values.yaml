@@ -147,6 +147,12 @@ services:
     # volume, which only one node can mount. Unlike the other two applications
     # here, this one cannot be given a second replica.
     replicaCount: 1
+    # Above the chart's 512Mi/1Gi on evidence: the largest production bodies
+    # are ~130 MB of JSON and dash-gate builds them in-process (parsed object,
+    # the string and the gzip all live at once), then keeps up to 128 MB of
+    # gzip in its cache. 1Gi is what one pod needs at rest; 2Gi is the peak.
+    appMemoryRequest: 1Gi
+    appMemoryLimit: 2Gi
     storageClassName: ebs-gp3
     # 20Gi on evidence, not by analogy with DEV: the full legacy set of 1340
     # pacings occupies 2.5 GB there, 13% of the volume. allowVolumeExpansion is
@@ -154,6 +160,10 @@ services:
     storageSize: 20Gi
     config:
       NODE_ENV: production
+      # Node sizes its heap from the container limit on its own (about 512 MB
+      # under 1Gi); with 2Gi it is told explicitly, leaving ~500 MB outside the
+      # heap for the gzip cache Buffers and file reads.
+      NODE_OPTIONS: "--max-old-space-size=1536"
       PORT: "3000"
       DASH_ROOT: /dashboards
       DATA_DIR: /dashboards/data

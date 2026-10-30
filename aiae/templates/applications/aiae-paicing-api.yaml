@@ -57,6 +57,14 @@ spec:
           # different copy of the dashboard cache.
           - name: replicaCount
             value: {{ .Values.services.paicingApi.replicaCount | quote }}
+          # Memory for the dash-gate container only (the chart's cpu values stay).
+          # Set per environment: a dashboard body is built in-process and the
+          # largest production ones are an order of magnitude bigger than DEV's,
+          # so PROD gets the headroom and DEV keeps the chart default.
+          - name: resources.app.requests.memory
+            value: {{ .Values.services.paicingApi.appMemoryRequest | quote }}
+          - name: resources.app.limits.memory
+            value: {{ .Values.services.paicingApi.appMemoryLimit | quote }}
           - name: persistence.storageClassName
             value: {{ .Values.services.paicingApi.storageClassName | quote }}
           - name: persistence.size
