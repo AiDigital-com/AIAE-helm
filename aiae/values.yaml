@@ -121,6 +121,10 @@ services:
     # One, and not a tuning choice: the three containers share a ReadWriteOnce
     # volume, which only one node can mount.
     replicaCount: 1
+    # The chart's defaults, named here so the environments can differ: PROD
+    # raises both for the in-process dashboard build; DEV's bodies are small.
+    appMemoryRequest: 512Mi
+    appMemoryLimit: 1Gi
     storageClassName: ebs-gp3
     storageSize: 20Gi
     config:
