@@ -20,7 +20,7 @@ source:
   # own - and the chart's only change across this range is the ten lines adding
   # that key, so nothing else moves with it.
   chartRevision: "5d10fa722ecd3219f7b25cd7f80be7ef1b5bba96"
-  operationalHubVersionsRevision: "45af0fa1d8dda8c4ad21b95d8fc371729036b102"
+  operationalHubVersionsRevision: "8122721faec6aa73dac7092b33925e94ee51e888"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
   aiaeOnboardingChartRevision: "0e2b1ee7f2d810360e7d2f3067d3d107e71b0726"
