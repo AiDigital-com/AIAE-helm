@@ -15,7 +15,7 @@ source:
   # chartRevision so Operational Hub's pin is never moved by this application.
   aiaeOnboardingChartRevision: "0e2b1ee7f2d810360e7d2f3067d3d107e71b0726"
   # Updated by the AIAE-onboarding-platform DEV workflow on every deployment.
-  aiaeOnboardingVersionsRevision: "6f7d54bbb761ba97ccd5480c6244edd28ea8c5d8"
+  aiaeOnboardingVersionsRevision: "a4f7c5c49bac514a895c9028d3f49486a940845f"
   # Chart revision Pacing was tested against. Its own key for the same reason as
   # the one above: raising a shared pin would re-sync a live application.
   paicingChartRevision: "01eb335bc0746d1e70cd807146e6cc6f03776057"
