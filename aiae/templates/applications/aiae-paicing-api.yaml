@@ -69,29 +69,11 @@ spec:
             value: {{ .Values.services.paicingApi.storageClassName | quote }}
           - name: persistence.size
             value: {{ .Values.services.paicingApi.storageSize | quote }}
+          # No Ingress: the Hub is Pacing's only caller and reaches it in-cluster
+          # (PACING_BASE_URL = the Service DNS name). A public ALB exposed /api
+          # and /healthz over plain HTTP with nothing using it.
           - name: ingress.enabled
-            value: "true"
-          - name: ingress.hosts[0].host
-            value: {{ .Values.services.paicingApi.host | quote }}
-          - name: ingress.hosts[0].paths[0].path
-            value: /api
-          - name: ingress.hosts[0].paths[0].pathType
-            value: Prefix
-          # Reachable from outside the cluster on purpose: this is what the ALB
-          # target group health check calls, and it is the one path that answers
-          # without a Hub assertion.
-          - name: ingress.hosts[0].paths[1].path
-            value: /healthz
-          - name: ingress.hosts[0].paths[1].pathType
-            value: Prefix
-          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/scheme
-            value: internet-facing
-          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/target-type
-            value: ip
-          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/listen-ports
-            value: '[{"HTTP":80}]'
-          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/healthcheck-path
-            value: /healthz
+            value: "false"
           {{- range $name, $value := .Values.services.paicingApi.config }}
           - name: config.{{ $name }}
             value: {{ $value | quote }}
