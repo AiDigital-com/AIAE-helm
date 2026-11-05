@@ -19,11 +19,16 @@ source:
   # Only operational-hub-api reads this pin - onboarding and Pacing have their
   # own - and the chart's only change across this range is the ten lines adding
   # that key, so nothing else moves with it.
-  chartRevision: "5d10fa722ecd3219f7b25cd7f80be7ef1b5bba96"
+  #
+  # Raised 2026-11-05 from 5d10fa7 to fc628eb: the only chart change in that
+  # range gives the Liquibase pod its own name label, so the HPA stops counting
+  # it once metrics-server is installed (the sync otherwise fails on "missing
+  # request for cpu in container liquibase"). Verified on DEV first.
+  chartRevision: "fc628eb90bfee71df559c3c329577bd1aa2ec407"
   operationalHubVersionsRevision: "9e9fd15576e5a2ce579c07dfae9851f469b68ba2"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
-  aiaeOnboardingChartRevision: "0e2b1ee7f2d810360e7d2f3067d3d107e71b0726"
+  aiaeOnboardingChartRevision: "df9bd77192b95607d3d6d1557c4f89efde9112f0"
   # Updated by release-prod.yml on every production release.
   aiaeOnboardingVersionsRevision: "6ae44ad1f389304bbd527a4f6f85eebd49ea5be7"
   # Chart revision Pacing was tested against. Its own key for the same reason as
