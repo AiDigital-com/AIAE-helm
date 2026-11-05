@@ -34,8 +34,12 @@ spec:
     metadata:
       annotations:
         aiae.aidigital.tech/deployment-revision: {{ .Values.deploymentRevision | quote }}
+      # Not selectorLabels: those would put this pod under the Deployment's selector, so the HPA
+      # (which fails on a pod without a CPU request), the Service and the PDB would count it as
+      # an application pod.
       labels:
-        {{- include "operational-hub-api.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ include "operational-hub-api.name" . }}-liquibase
+        app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: database-migration
     spec:
       restartPolicy: Never
