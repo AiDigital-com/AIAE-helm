@@ -25,7 +25,7 @@ source:
   # it once metrics-server is installed (the sync otherwise fails on "missing
   # request for cpu in container liquibase"). Verified on DEV first.
   chartRevision: "fc628eb90bfee71df559c3c329577bd1aa2ec407"
-  operationalHubVersionsRevision: "dceb3ce1d998dd681f5ba4834646016f9ba0313a"
+  operationalHubVersionsRevision: "762ea0db2369cde8f6a2c6165957635ec993b0e1"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
   aiaeOnboardingChartRevision: "df9bd77192b95607d3d6d1557c4f89efde9112f0"
