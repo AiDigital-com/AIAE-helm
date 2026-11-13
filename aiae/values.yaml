@@ -35,7 +35,7 @@ source:
   # the two above: raising a shared pin would re-sync a live application.
   paicingChartRevision: "01eb335bc0746d1e70cd807146e6cc6f03776057"
   # Updated by gitops-prod-deploy-manual.yml on every production release.
-  paicingVersionsRevision: "065cf23d91d72557fc5c0762eb55021f8b5faabf"
+  paicingVersionsRevision: "da0a13151ac98fd7930f8415a9b5be583d6072ed"
 services:
   operationalHubApi:
     enabled: true
