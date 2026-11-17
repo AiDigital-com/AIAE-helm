@@ -220,26 +220,32 @@ services:
       APP_ADMIN_EMAILS: alex.turner@aidigital.com
       SLIDES_SHARE_WITH_EMAILS: alex.turner@aidigital.com
       # ── Deck templates ───────────────────────────────────────────────────
-      # Deliberately not set here. Every template id, master-slide object id and
-      # chart id this application needs already has a default in
-      # application.yml, and those defaults are exactly what the published
-      # Replit deployment runs on: scripts/lib/deploy-env.sh overrides only the
-      # two EOM keys, and it pins them back to the same application.yml values.
+      # DEV's own copies of the production templates, in the Presentation
+      # Builder shared drive under DEV/Templates (folder
+      # 1itV3eWs80iytKAPseAOKVCwg9cFuNxTr). They are Drive copies of the files
+      # the application.yml defaults name, so every master-slide object id and
+      # chart id those defaults carry stays valid; only the file ids change.
       #
-      # DEV briefly carried the NEW template set instead, copied from
-      # scripts/lib/new-template-env.sh, which is the Replit *workspace* profile.
-      # Generation failed on every attempt: copying EOM_SHEETS_TEMPLATE_ID
-      # 1zQOMfu... returned 404 File not found, eight retries deep, before Claude
-      # or Slides were reached. The new workbook is not readable by the account
-      # this deployment copies as. The other 31 ids would have failed after it —
-      # object ids address slides inside one specific deck, so p7/p8/g3f6fd96...
-      # do not exist in the deck the defaults name.
+      # Access: reports are copied with the signed-in user's Google token (the
+      # service account is only the fallback), so every user must be able to
+      # read these files. The shared drive grants aidigital.com reader and the
+      # presentation-builder service account fileOrganizer, inherited by every
+      # file here. An earlier attempt failed with 404 because the files it named
+      # lacked exactly that access; check it before pointing at other files.
       #
-      # Setting them again would also duplicate values that already live in
-      # application.yml, and the copy is what drifts. Leave them unset so DEV
-      # follows the application's own defaults, which is what "behaves like the
-      # Replit production app" means.
-      #
-      # To try the new template set again: share the workbook and deck with the
-      # service account first, confirm a copy succeeds, and add the full set back
-      # together — the ids are one coherent group, not independent switches.
+      # The ids are one coherent group: the two MPO decks' linked charts were
+      # relinked to the DEV chart workbooks below, and the application finds a
+      # chart by the workbook it links to, so the MPO_* workbook ids must stay
+      # DEV's whenever the MPO deck ids are DEV's. EOM_SLIDES_TEMPLATE_ID stays
+      # unset so the EOM deck keeps falling back to SLIDES_TEMPLATE_ID.
+      SLIDES_TEMPLATE_ID: 1CqsjTdYUBRxQ6kyPrJ4tBCMPyR-kJoQGvRnbxCTCxCc
+      SHEETS_TEMPLATE_ID: 1SJLcpNsM1rPUxs4Vb5jza0X7RkMscs6iiekOs0bjf1s
+      EOM_SHEETS_TEMPLATE_ID: 1qHQ6bkEWOgbEDujXwxWLKxqgEUSo3K4fVGFfQ7_seTk
+      MPO_EOC_SLIDES_TEMPLATE_ID: 1npBFDQJx0-z3wFDqSeGftrzINqfSEvReusx7UmgI8K8
+      MPO_EOM_SLIDES_TEMPLATE_ID: 1DIyoFgEu0U8e7usiBS_SAG1NpbCH68TlqbHbQqHUugQ
+      MPO_DAILY_CHART_TEMPLATE_SHEET_ID: 1BVMJrlhIyQgoI76n5r-QE0ivGPSDOf1cTbREpfvR79E
+      MPO_MONTHLY_CHART_TEMPLATE_SHEET_ID: 12XsdFmaHmAqK2R2KEUifO9b-G28Jz7iYby_t9HCunMI
+      MPO_DIST_CHART_TEMPLATE_SHEET_ID: 1CAjwl4wINXYbzm-AQVPE7ipSHEqfezYB_4YXNT-gj6k
+      MPO_BREAKDOWN_AUD_SOURCE_SHEET_ID: 1VhLhdmU9Av1odugiWqZxuu522Et2q8EAUJeIXD6yGQo
+      MPO_BREAKDOWN_AUD_SEG_SOURCE_SHEET_ID: 1B_hAcQJ7UMpZaxGo4rjPQxgf7Bs8E2TlQIZ1VpDWIr4
+      MPO_BREAKDOWN_DEV_SOURCE_SHEET_ID: 1zwSUkXVaUwFGCD4pGB2uuI6seULuo4DYQEi97K7xWW4
