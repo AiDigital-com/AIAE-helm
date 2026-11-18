@@ -42,6 +42,11 @@ spec:
             value: {{ .Values.services.operationalHubApi.minReplicas | quote }}
           - name: autoscaling.maxReplicas
             value: {{ .Values.services.operationalHubApi.maxReplicas | quote }}
+          # A single-replica DEV deployment gains nothing from a PodDisruptionBudget,
+          # and minAvailable=1 against 1 replica makes the pod non-evictable, which
+          # blocks EKS Auto Mode from consolidating or recycling the node.
+          - name: podDisruptionBudget.enabled
+            value: {{ .Values.services.operationalHubApi.podDisruptionBudgetEnabled | quote }}
           - name: ingress.enabled
             value: "true"
           - name: ingress.hosts[0].host
