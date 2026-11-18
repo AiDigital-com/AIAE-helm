@@ -42,7 +42,7 @@ source:
   presentationBuilderChartRevision: "df9bd77192b95607d3d6d1557c4f89efde9112f0"
   # Written by the Presentation Builder's production release. Never read while
   # services.presentationBuilderApi.enabled is false.
-  presentationBuilderVersionsRevision: "bd9b4bc55580927724fc05e9f24442449feb1762"
+  presentationBuilderVersionsRevision: "6e88d03b5a81240f4d6c8db95f73d946d7810ce2"
 services:
   operationalHubApi:
     enabled: true
