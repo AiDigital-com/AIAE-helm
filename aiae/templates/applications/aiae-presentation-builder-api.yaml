@@ -1,0 +1,89 @@
+{{- if .Values.services.presentationBuilderApi.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aiae-presentation-builder-api-{{ .Values.env }}
+  namespace: {{ .Values.const.argoNamespace }}
+  finalizers:
+    - {{ .Values.const.finalizer }}
+spec:
+  project: {{ .Values.appProject }}-{{ .Values.env }}
+  destination:
+    server: {{ .Values.destination.server | quote }}
+    namespace: {{ .Values.destination.namespace }}
+  sources:
+    - repoURL: {{ .Values.source.helmRepositoryUrl | quote }}
+      # Deliberately NOT .Values.source.chartRevision: that value is Operational
+      # Hub's, and raising it to pick up this application's chart would move a live
+      # application's pin and force it to re-sync. Each application pins the chart
+      # revision it was tested against.
+      targetRevision: {{ .Values.source.presentationBuilderChartRevision | quote }}
+      path: aiae-presentation-builder-api
+      helm:
+        parameters:
+          - name: environment
+            value: {{ .Values.env | quote }}
+          - name: namespace
+            value: {{ .Values.destination.namespace | quote }}
+          - name: image.repository
+            value: {{ .Values.services.presentationBuilderApi.imageRepository | quote }}
+          - name: liquibase.image.repository
+            value: {{ .Values.services.presentationBuilderApi.liquibaseImageRepository | quote }}
+          - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
+            value: {{ .Values.services.presentationBuilderApi.iamRoleArn | quote }}
+          - name: secretsManager.awsSecretName
+            value: {{ .Values.services.presentationBuilderApi.secretName | quote }}
+          # The RDS-managed master user secret. The application reads the
+          # database credentials from it at connection time through the AWS
+          # Advanced JDBC Wrapper, and the Liquibase PreSync Job gets them as
+          # projected files. Nothing keeps a second copy, because AWS rotates
+          # this password every seven days and no copy would follow it.
+          - name: secretsManager.databaseCredentialsSecret.awsSecretName
+            value: {{ .Values.services.presentationBuilderApi.databaseCredentialsSecretArn | quote }}
+          - name: replicaCount
+            value: {{ .Values.services.presentationBuilderApi.replicaCount | quote }}
+          - name: autoscaling.minReplicas
+            value: {{ .Values.services.presentationBuilderApi.minReplicas | quote }}
+          - name: autoscaling.maxReplicas
+            value: {{ .Values.services.presentationBuilderApi.maxReplicas | quote }}
+          # A single-replica DEV deployment gains nothing from a PodDisruptionBudget,
+          # and minAvailable=1 against 1 replica makes the pod non-evictable, which
+          # blocks EKS Auto Mode from consolidating or recycling the node.
+          - name: podDisruptionBudget.enabled
+            value: {{ .Values.services.presentationBuilderApi.podDisruptionBudgetEnabled | quote }}
+          - name: ingress.enabled
+            value: "true"
+          - name: ingress.hosts[0].host
+            value: {{ .Values.services.presentationBuilderApi.host | quote }}
+          - name: ingress.hosts[0].paths[0].path
+            value: /api
+          - name: ingress.hosts[0].paths[0].pathType
+            value: Prefix
+          - name: ingress.hosts[0].paths[1].path
+            value: /actuator/health
+          - name: ingress.hosts[0].paths[1].pathType
+            value: Prefix
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/scheme
+            value: internet-facing
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/target-type
+            value: ip
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/listen-ports
+            value: '[{"HTTP":80}]'
+          - name: ingress.annotations.alb\.ingress\.kubernetes\.io/healthcheck-path
+            value: /actuator/health/readiness
+          {{- range $name, $value := .Values.services.presentationBuilderApi.config }}
+          - name: config.{{ $name }}
+            value: {{ $value | quote }}
+          {{- end }}
+        valueFiles:
+          - $versions/aiae-presentation-builder-api/values.yaml
+    - repoURL: {{ .Values.source.versionsRepositoryUrl | quote }}
+      targetRevision: {{ .Values.source.presentationBuilderVersionsRevision | quote }}
+      ref: versions
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}

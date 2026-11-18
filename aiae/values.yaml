@@ -36,6 +36,13 @@ source:
   paicingChartRevision: "01eb335bc0746d1e70cd807146e6cc6f03776057"
   # Updated by gitops-prod-deploy-manual.yml on every production release.
   paicingVersionsRevision: "d2ee14d684d5c949be1ca3fe73cee0ab126a240d"
+  # Chart revision the Presentation Builder was tested against on DEV. Its own
+  # key for the same reason as the ones above: raising a shared pin would
+  # re-sync a live application that was never tested against the new chart.
+  presentationBuilderChartRevision: "df9bd77192b95607d3d6d1557c4f89efde9112f0"
+  # Written by the Presentation Builder's production release. Never read while
+  # services.presentationBuilderApi.enabled is false.
+  presentationBuilderVersionsRevision: ""
 services:
   operationalHubApi:
     enabled: true
@@ -221,3 +228,190 @@ services:
       #   FROM access.pacings WHERE config_json->'data' ? 'sheet';
       # (docs/legacy-import.md, "Cutover checklist").
       SHEET_SOURCE_ACCOUNT_EMAIL: mpo-pacing-prod@aidigital.com
+  presentationBuilderApi:
+    # Registered DISABLED. The PROD infrastructure exists (applied 2026-11-18,
+    # AIAE-aws-infra PR #12: the role, secret, repository and database below are
+    # its real names), but no release has written an image tag yet, so enabling
+    # it now would leave Argo CD Degraded on ImagePullBackOff. While disabled,
+    # the template renders nothing, so this block changes nothing live.
+    #
+    # Before enabling:
+    #   * set the PROD hostname in AUTH_AUTHORIZED_PARTIES,
+    #     APP_SECURITY_CORS_ALLOWED_ORIGINS and APP_SECURITY_CSP_FRAME_ANCESTORS;
+    #   * let the release workflow write presentationBuilderVersionsRevision.
+    enabled: false
+    imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
+    liquibaseImageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
+    iamRoleArn: arn:aws:iam::125093118532:role/aiae-presentation-builder-prod-application
+    secretName: AIAE-PRD/aiae-presentation-builder
+    databaseCredentialsSecretArn: arn:aws:secretsmanager:us-east-1:125093118532:secret:rds!db-b8b8d6ef-ca85-4bec-a077-7ffb72957feb-tfYKGm
+    host: ""
+    # Production-shaped, as for the other PROD applications: two replicas behind
+    # a PodDisruptionBudget, so a node recycle never takes the service down.
+    replicaCount: 2
+    minReplicas: 2
+    maxReplicas: 10
+    podDisruptionBudgetEnabled: true
+    config:
+      SPRING_PROFILES_ACTIVE: eks
+      PORT: "5000"
+      MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
+      APP_SERVICE_NAME: aiae-presentation-builder
+      # Matched EXACTLY against the JWT azp claim: ClerkJwtClaimsValidator uses
+      # List.contains, with no wildcards. Empty until the PROD hostname exists;
+      # it must be set, together with the two values below, before enabling.
+      AUTH_AUTHORIZED_PARTIES: ""
+      # The wildcard escape hatch exists for the ephemeral Replit preview
+      # hostnames and must stay empty here, or the exact match above stops
+      # being exact.
+      AUTH_AUTHORIZED_PARTY_PATTERNS: ""
+      AUTH_ALLOWED_EMAIL_DOMAIN: aidigital.com
+      APP_SECURITY_CORS_ALLOWED_ORIGINS: ""
+      APP_SECURITY_CSP_FRAME_ANCESTORS: "'self'"
+      # ARN of the RDS-managed secret, read by the AWS Advanced JDBC Wrapper at
+      # connection time so a rotation never reaches the application.
+      # ARN of the RDS-managed secret, read by the AWS Advanced JDBC Wrapper at
+      # connection time so a rotation never reaches the application.
+      DB_MASTER_SECRET_ID: arn:aws:secretsmanager:us-east-1:125093118532:secret:rds!db-b8b8d6ef-ca85-4bec-a077-7ffb72957feb-tfYKGm
+      # db.t3.small has a small max_connections budget that the migration Job
+      # also draws on.
+      DB_MAX_POOL_SIZE: "10"
+      USAGE_LOG_SERVICE_NAME: aiae-presentation-builder
+      USAGE_LOG_ENVIRONMENT: prod
+      # Admin allow-list and the addresses every generated deck and sheet is
+      # auto-shared with as a writer. Unchanged from the live Replit deployment.
+      APP_ADMIN_EMAILS: alex.turner@aidigital.com
+      SLIDES_SHARE_WITH_EMAILS: alex.turner@aidigital.com
+      # ── Deck templates ───────────────────────────────────────────────────
+      # PROD's own copies of the production templates, in the Presentation
+      # Builder shared drive under PROD/Templates (folder
+      # 1EdGExqzDjeqYZz_apSXWYX-dK-dFXCaE). They are Drive copies of the files
+      # the application.yml defaults name, so every master-slide object id and
+      # chart id those defaults carry stays valid; only the file ids change.
+      #
+      # Access: reports are copied with the signed-in user's Google token (the
+      # service account is only the fallback), so every user must be able to
+      # read these files. The shared drive grants aidigital.com reader and the
+      # presentation-builder service account fileOrganizer, inherited by every
+      # file here. An earlier attempt failed with 404 because the files it named
+      # lacked exactly that access; check it before pointing at other files.
+      #
+      # The ids are one coherent group: the two MPO decks' linked charts were
+      # relinked to the PROD chart workbooks below, and the application finds a
+      # chart by the workbook it links to, so the MPO_* workbook ids must stay
+      # PROD's whenever the MPO deck ids are PROD's. EOM_SLIDES_TEMPLATE_ID stays
+      # unset so the EOM deck keeps falling back to SLIDES_TEMPLATE_ID.
+      SLIDES_TEMPLATE_ID: 1cQEaxX_BpdnOh_gJqcFWnP2iiGEI0VZy-S611hKLsEU
+      SHEETS_TEMPLATE_ID: 1_K-dRVVaGL1bqooih72KYqnIF8pbIm9OiCwA3EAZvug
+      EOM_SHEETS_TEMPLATE_ID: 1EAPrRkSSEfenXEYpIrvlg0KUwDxcj7LbRI7VhNZI4VQ
+      MPO_EOC_SLIDES_TEMPLATE_ID: 1gpRWg8W9EN_qmb3T_x8TpdxwQxSCyHxns5UYsFpsPgw
+      MPO_EOM_SLIDES_TEMPLATE_ID: 1yx6Y9KhBG8T0Qxso7AziLTOXw-5VX6XtLuk8Knh_Rsw
+      MPO_DAILY_CHART_TEMPLATE_SHEET_ID: 1a2uUTv1x705WDyVftsCZscfQJYnXU2UZq556YNZP8TI
+      MPO_MONTHLY_CHART_TEMPLATE_SHEET_ID: 1JXz3eVd8v3WxOpY_tlhG9DMSoobtHTDPSE0Ab4ef_Lw
+      MPO_DIST_CHART_TEMPLATE_SHEET_ID: 19tMzIcPqwlJBPQLF0nge_XN3sZVzuAQq6LDQtIJ6VUQ
+      MPO_BREAKDOWN_AUD_SOURCE_SHEET_ID: 1YDcoOA5nhpKNrmfJ47U6nYVc9U-MA6AdpbgQEe6qJ-c
+      MPO_BREAKDOWN_AUD_SEG_SOURCE_SHEET_ID: 12FcLOEGGcbW4ZyQVyUN7gaH7kwjd-yug9i1oQZ8YsE4
+      MPO_BREAKDOWN_DEV_SOURCE_SHEET_ID: 1BEd8pQTaQAp9RODnZ50YdffMmHTvhQJvM3QPsrh3ni4
+      # ── Standard deck chart workbooks ────────────────────────────────────
+      # The PROD Template copy's linked charts were relinked to PROD's own copies
+      # of their source workbooks (PROD/Templates/Template charts, folder
+      # 1A9BhD9ZUyBzKWm-XEKwiu5A_R0wd6LgU). The application finds each chart on a
+      # slide by the workbook it links to, so these ids must match the deck's
+      # links exactly; a mismatch leaves the chart unfound.
+      #
+      # The per-slot maps have no ${...} placeholder in application.yml, so they
+      # are overridden through Spring's relaxed environment binding: one entry
+      # per map key, merged over the application.yml map.
+      #
+      # The device breakdown chart links to PROD's copy of "EOC - device
+      # distribution" (verified 2026-11-18 on the PROD Template). Its old chart id 1497669750 no longer exists in any copy;
+      # 2117834642 ("Device Split") is the chart the application already fell back
+      # to. The breakdown slide finds its chart by the linked workbook, so this id
+      # and the PROD Template's link must change together.
+      BREAKDOWN_DEV_SOURCE_SHEET_ID: 1awumniW2lfU55mGiOnPhX_0QNyShzxiZETbdAuMvxrM
+      BREAKDOWN_DEV_CHART_ID: "2117834642"
+      BREAKDOWN_AUD_SOURCE_SHEET_ID: 12u8vg56H1cpFztrGubInQDzpasFJIlEBEFYd0xzyyXI
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_1: 1XvXuwoOCU9ezVW8EU041RcYzkDEwA5UdhuKtJK43yew
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_2: 1EAgXv7dLYr8eLcD0a7nglEA7xHAR7WaApOA0rfoRoRU
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_3: 18PxycZyHmJAI6u-eaoQHCSMGxj1PPVel5zXO7a7gi0w
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_4: 1mijOmQMgjoDMqjCVeNuvc4lEkhMPtmk2REwGXCkpKdk
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_5: 1zggM9kdFPJC0NM0hEIvU_w090VedfQmHpZD3GTPgrl4
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_6: 1FC1YT_oLpyGjj9H22tFGSskxbr7IlHX8Z7N8kBVVEP0
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_7: 1T26Bt4-XCPfdRiXhMYeZeMei2eg3-muL3eNoFXiFOTo
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_8: 1ha5tjJoFW06pR8lX5Iw9Za8GDlcyh40W3S6k27QUDEY
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_9: 1KI8HHTjXaYjTO69sg7W3U2AXFzXKMkjM4W8X9jTSWZE
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_10: 1jC3JFJzKe1DwEscVUuSeSuWqt1RMlMKqDZ-cBX4MrEk
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_11: 1TnN4_qSqpjq1bjcQaUjFcc66LW2llxw7XpKUjsmrm9A
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_12: 1Tlyz-srD5UAo1wvZNaetyN1JCvIIFLFZlFwqNyrci_I
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_13: 1rGEB-5vVybvGZ7IlTZVCDWmvroUPtunS0pm2Qan5wXQ
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_14: 1eXjkJMl055eHI3QCLpGiIqbP1ZOnr5MMoI7VGeCU5hM
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_15: 1aj6yH9ZjW5OnN-TtvZ3ZWLZU9U4pw2W9YsZPknOF4pQ
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_16: 1uWl-kvrPF4IzzvJr0lIVWVDxb7Iu-BYVY5N98iWNdOw
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_17: 1sssMxOiDcA8xLlmSsns-idCMdfPbl8Yg77uHh3KuOiU
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_18: 1NB8IoXUkkDJ4XqVy3uqgAQtrHuHC6cfksz2kHCAxU6c
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_19: 1L4fwBoRFF7PRsTQwaP6NMSaCNQ9VtsVvuWht6dWusW0
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_20: 1d_oTHBGMbmiAFrkpuGKsewwbOkvEkCfDI22vsngdr2k
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_21: 1KKSfQ45sBxo1MvTNXXclJ4THrQOjQeEQnHk4W7e1iTI
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_22: 1cSPJebSsdkrGj6cPLEawRpHq7NuRWlivZIYY1IyyN78
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_23: 1zaLLFu-2xooL5hqVJ7zpKPhzxNX2-_rPKl8H120Hx9U
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_24: 1OM66pYEimaH5nV0twYWXSonQWWbbjs-wHojVUC4ljCc
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_25: 1ksLoZisZeVfvxnzEf3SuLj-AjEt0Qe5KZ_P83srekFQ
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_26: 1CS7AImYAfqz-vTCRVC35rgGGt-Dn8xJzfOaGe9b_p3k
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_27: 1z-Y6tpZesWCsiwk9Y5aBjbDBp4SKzzQ_Cqjs3NNJuSc
+      EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_28: 1gN82fJUTPK5wCksjabDQb58oKNTm3ZRg4glwOhr4XOo
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_1: 18Rt90JoTtri8IiGU_cElCKF1WuWXXy2e_Om0tt_3oIM
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_2: 13W8YRuRScLltHiiIBoDHBaEKVNwt0iLvomVCTDBWGQc
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_3: 1Dn-K81ifoMBxvSZskgts8V_sYn_tVP1f890LPX7W5cU
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_4: 1WQz2K4Uk5i_wZxvPubwo6dqNMPe3OoC5wRkvmxL1rrM
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_5: 1d7QUkb53f7uJW1mtrELjX7EewzudSAq5iSqmI1PKAlY
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_6: 1fPc0rUqZj7t5Vh87ZVnQj9r9-suE7Qc-Rph5rJAEq3k
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_7: 1UVrnUauaqK5Zdv55cxVgu2etIJ5zkCmpsvGuqMJfhFU
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_8: 1Hou76QFcDJBuWquOhu3n9QpqB_wEAWV1xcFC_Ii9-eA
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_9: 1fCTayB607S-WdiYSnBYmLu7x2QHm8X7rmQB2PE-payQ
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_10: 1dGlaho3A56djsE10cnp0QPWzA1RC-d0HWdYlXJCxnYc
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_11: 1kTwX477sps2XTfuMMi42P10akyflUFeJHw-D43jSf0U
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_12: 1yYvRjoPKwXbMjnrebiNwuB05KzECV2JpkNQrpqOwrGU
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_13: 10uAoP_npxIUDD_mlnml4OQAbxxC6eEWFoMV4StATydk
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_14: 1syHtFk6tPNy-BQNnLhiETIHMyLwUnAEYCHo-PQ_j_zQ
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_15: 11HiSmP1b2erOUm_S5yYNW8z8swRaWufJZo526lhaIZg
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_16: 13HZMDc-AVHP67hbFoCXy0JW2ACPnasdcmfNbfAIBoM4
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_17: 14-5AueE7QHsC5B5pO6_-TpTh0by3eBUye9fWqqb2kb4
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_18: 1mRGjZqJf14QVhhH1oB3a5XkhkumhoNpG8I-ptNYYPuQ
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_19: 1Ub5SP0yh02-T55pOKlUzuJsZ_8hhAK97MOVH5H9ZGzU
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_20: 1-btB4_xwCou58jQDcA0jRWQxs7K2dNsHzo8spNegrkQ
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_21: 1LMFZ0OUSzMNPO69ZOK4qWPzzG1gYkNVqRXsaWlnnyww
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_22: 1Y5Sf9cjpEkhi4lFRnAP-T3PDCQsiLP1PttNbSHTnXuE
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_23: 1ZfEJlGHGgueztFmw75Papcu0bsvTZ5BX3smTFnQ0924
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_24: 1BxoQVc2LFj2KNrFP5bk6xA1qtfOIk0DyXlbJP7Z77R0
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_25: 1RIw9rWDF9b1EAxg2Rfag8DhDFGOalsuhkh2QCFvtljA
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_26: 1R696RJcX_nIpTnYq8aV-JDHkGxNQmahtDSb2DZZTj8g
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_27: 1SA7MHFYnPau7FbxBbIovLNqpGz3VEwoWjH9mneU_ZSI
+      EXTERNAL_GOOGLE_CHARTS_MONTHLYTEMPLATESHEETIDS_28: 1yaVtFBnRuAsQjiFnB87uMRcieezZF3hSpYLOiSmGNoY
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_1: 1Pupp36n_C8MtpkElHGgp3m_nCTEvqYJMHoywZyfWlE8
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_2: 1Pm514IJH8DzQG80ug0-DivA_u8gYt1x3wTEmBmqpaCY
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_3: 1VLFGEMkL4mkc7LyTiEILYi_1ucI4WvnpU5I9uEdHSus
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_4: 1VMjnGLE5PqktjfyF2Uo8DakNOtu5GdzQlWl8MGAA1lg
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_5: 13h_4VB_f15s0Cqe_tg9HdIh6yCka0qtnxHrg5Pclw5I
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_6: 1sLc3_QIh5h3bYIhUZAeBaFNxo_IIJ9rNhip1ZE-PkR0
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_7: 1mWMSWSiRO2pBVW9mnMuonQFOpJMJXv-eckSZRxs5i40
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_8: 1_F9WQzRvAxfoH5znWv3lzN7oTEfV8Qkwt1pAPF1f7Ww
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_9: 1HC7tFkE-7TMOxjezj53NOv2_dnHO6Qbit_XoQERFUP0
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_10: 1IpD-7AQXJyvSWfqmIa3TWsaiTKTU98K4iY5k_KpdRjs
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_11: 1CyMJAlIme_6-iQ41IWE9HMp1dhfa4L1SJi8AcgD9t4s
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_12: 1Py-q9OHaImSvNYMGxFgAr_z49-LVfLwQHDujdwFCFbg
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_13: 1bILTI7Ql1gap9h2cmFBvoPHgaNrI8IIZCsB0kPKfYO8
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_14: 11DzT0ALet3NezMoJ4We-9MLiC7lFF_yEL4ywO15hyEg
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_15: 1VSznEWJleJkfMhTn3RV5riRhME50AifeXNRjs8OtX8E
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_16: 1HRr4Q1Bc8srIwmZfTfjieKohOj2HQvScOop4VbZoRlw
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_17: 1fwr-LptPBW5TF8Xd6aUMPA_xt8aa_o6YuGk94dx56ZM
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_18: 1I_3Pfg6I4wKzSiKtLfNfbQ5kazGvUgyLRIVgqfbPSaQ
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_19: 1JDRQCVIzXZbkeg8K1PCJS76Cyrg2SJy_liyWLt_sbtA
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_20: 1npqLK0wNkdLUPKnHqUJqwmzXT6fauQTtBjC9Zgy_3qg
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_21: 1ultlM3psHF4qdSUWIVwYTFvLb0eoFCBTYcaKFtEUp0I
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_22: 11rUE5Drhxj0teEtY2IQqKZzSHUrg93EndvKviZkACB0
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_23: 1C2jZEykTmJMclWYKA6tlPGwkLjlWkrG9mHotv61ocz0
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_24: 1sEOPvj6QYtcpc2w97O65eDstAYGiKRdWW2R7Qduo9mY
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_25: 1Ce8axMCy0cQuojYbezI_6KmHF8jwupzkK1-QX-KQavU
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_26: 1OirTdwRCQRirkajCu1Du1T8mMB5-j8ddEAsYQ369NEw
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_27: 1ZGawPXl6T8ykj3oJhLnO0izGzbG5FARf9osh4k8vxxc
+      EXTERNAL_GOOGLE_CHARTS_DISTTEMPLATESHEETIDS_28: 1nzXXui4QXcLWdKi2e8cDzXkU-fx4V_3vjbJ2dErqaQE
