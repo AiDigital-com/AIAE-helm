@@ -229,17 +229,13 @@ services:
       # (docs/legacy-import.md, "Cutover checklist").
       SHEET_SOURCE_ACCOUNT_EMAIL: mpo-pacing-prod@aidigital.com
   presentationBuilderApi:
-    # Registered DISABLED. The PROD infrastructure for this application (ECR
-    # repository, IAM role, application secret, RDS instance) is not applied in
-    # 125093118532 yet, and no release has written an image tag. Enabling it now
-    # would leave Argo CD Degraded on ImagePullBackOff and missing secrets. While
-    # disabled, the template renders nothing, so this block changes nothing live.
+    # Registered DISABLED. The PROD infrastructure exists (applied 2026-11-18,
+    # AIAE-aws-infra PR #12: the role, secret, repository and database below are
+    # its real names), but no release has written an image tag yet, so enabling
+    # it now would leave Argo CD Degraded on ImagePullBackOff. While disabled,
+    # the template renders nothing, so this block changes nothing live.
     #
     # Before enabling:
-    #   * apply the PROD Terraform for the Presentation Builder and confirm the
-    #     role, secret and repository names below match its outputs;
-    #   * set databaseCredentialsSecretArn and DB_MASTER_SECRET_ID to the
-    #     RDS-managed secret ARN (AWS generates its suffix at create time);
     #   * set the PROD hostname in AUTH_AUTHORIZED_PARTIES,
     #     APP_SECURITY_CORS_ALLOWED_ORIGINS and APP_SECURITY_CSP_FRAME_ANCESTORS;
     #   * let the release workflow write presentationBuilderVersionsRevision.
@@ -248,7 +244,7 @@ services:
     liquibaseImageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
     iamRoleArn: arn:aws:iam::125093118532:role/aiae-presentation-builder-prod-application
     secretName: AIAE-PRD/aiae-presentation-builder
-    databaseCredentialsSecretArn: ""
+    databaseCredentialsSecretArn: arn:aws:secretsmanager:us-east-1:125093118532:secret:rds!db-b8b8d6ef-ca85-4bec-a077-7ffb72957feb-tfYKGm
     host: ""
     # Production-shaped, as for the other PROD applications: two replicas behind
     # a PodDisruptionBudget, so a node recycle never takes the service down.
@@ -274,8 +270,9 @@ services:
       APP_SECURITY_CSP_FRAME_ANCESTORS: "'self'"
       # ARN of the RDS-managed secret, read by the AWS Advanced JDBC Wrapper at
       # connection time so a rotation never reaches the application.
-      # Set from the PROD RDS instance's managed secret once it exists.
-      DB_MASTER_SECRET_ID: ""
+      # ARN of the RDS-managed secret, read by the AWS Advanced JDBC Wrapper at
+      # connection time so a rotation never reaches the application.
+      DB_MASTER_SECRET_ID: arn:aws:secretsmanager:us-east-1:125093118532:secret:rds!db-b8b8d6ef-ca85-4bec-a077-7ffb72957feb-tfYKGm
       # db.t3.small has a small max_connections budget that the migration Job
       # also draws on.
       DB_MAX_POOL_SIZE: "10"
