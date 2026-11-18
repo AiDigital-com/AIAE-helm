@@ -260,10 +260,13 @@ services:
       # are overridden through Spring's relaxed environment binding: one entry
       # per map key, merged over the application.yml map.
       #
-      # BREAKDOWN_DEV_SOURCE_SHEET_ID is deliberately NOT set: the deck's device
-      # distribution chart was not relinked (its chart id 1497669750 no longer
-      # exists in the original workbook either, a pre-existing break), so it still
-      # links to the root workbook the default names.
+      # The device breakdown chart links to DEV's copy of "EOC - device
+      # distribution". Its old chart id 1497669750 no longer exists in any copy;
+      # 2117834642 ("Device Split") is the chart the application already fell back
+      # to. The breakdown slide finds its chart by the linked workbook, so this id
+      # and the DEV Template's link must change together.
+      BREAKDOWN_DEV_SOURCE_SHEET_ID: 1pGDtx-Crpt52L59T-zexVwKItQZM_UQs7sYR7m_IVgM
+      BREAKDOWN_DEV_CHART_ID: "2117834642"
       BREAKDOWN_AUD_SOURCE_SHEET_ID: 1PnuvlQn0IQScgUzQ5wlTbOJBARfUBfhjrSvdy2aOZw4
       EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_1: 1eH0uYienhqFwJSAP5BLuN-0KbINhb4E30460GWQdbk4
       EXTERNAL_GOOGLE_CHARTS_DAILYTEMPLATESHEETIDS_2: 1AHnF4fIjONwvYEiBaYhJzP5FPlhOrEbHeV0Aj7lUd9E
