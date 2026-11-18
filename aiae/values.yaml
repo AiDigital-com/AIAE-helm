@@ -229,17 +229,11 @@ services:
       # (docs/legacy-import.md, "Cutover checklist").
       SHEET_SOURCE_ACCOUNT_EMAIL: mpo-pacing-prod@aidigital.com
   presentationBuilderApi:
-    # Registered DISABLED. The PROD infrastructure exists (applied 2026-11-18,
-    # AIAE-aws-infra PR #12: the role, secret, repository and database below are
-    # its real names), but no release has written an image tag yet, so enabling
-    # it now would leave Argo CD Degraded on ImagePullBackOff. While disabled,
-    # the template renders nothing, so this block changes nothing live.
-    #
-    # Before enabling:
-    #   * set the PROD hostname in AUTH_AUTHORIZED_PARTIES,
-    #     APP_SECURITY_CORS_ALLOWED_ORIGINS and APP_SECURITY_CSP_FRAME_ANCESTORS;
-    #   * let the release workflow write presentationBuilderVersionsRevision.
-    enabled: false
+    # Enabled 2026-11-18 at the PROD cutover: the infrastructure is applied
+    # (AIAE-aws-infra PRs #12-#14), release 1.0.0-f720c6c51678 is published and
+    # pinned through presentationBuilderVersionsRevision, and the database holds
+    # the merged Replit + DEV history, so Liquibase finds its changesets applied.
+    enabled: true
     imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
     liquibaseImageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/presentation-builder-application
     iamRoleArn: arn:aws:iam::125093118532:role/aiae-presentation-builder-prod-application
@@ -258,16 +252,16 @@ services:
       MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
       APP_SERVICE_NAME: aiae-presentation-builder
       # Matched EXACTLY against the JWT azp claim: ClerkJwtClaimsValidator uses
-      # List.contains, with no wildcards. Empty until the PROD hostname exists;
-      # it must be set, together with the two values below, before enabling.
-      AUTH_AUTHORIZED_PARTIES: ""
+      # List.contains, with no wildcards. The production Clerk instance is bound
+      # to aidigital.tech, so this hostname is the only origin login works on.
+      AUTH_AUTHORIZED_PARTIES: "https://aiae-presentation-builder.aidigital.tech"
       # The wildcard escape hatch exists for the ephemeral Replit preview
       # hostnames and must stay empty here, or the exact match above stops
       # being exact.
       AUTH_AUTHORIZED_PARTY_PATTERNS: ""
       AUTH_ALLOWED_EMAIL_DOMAIN: aidigital.com
-      APP_SECURITY_CORS_ALLOWED_ORIGINS: ""
-      APP_SECURITY_CSP_FRAME_ANCESTORS: "'self'"
+      APP_SECURITY_CORS_ALLOWED_ORIGINS: "https://aiae-presentation-builder.aidigital.tech"
+      APP_SECURITY_CSP_FRAME_ANCESTORS: "'self' https://aiae-presentation-builder.aidigital.tech"
       # ARN of the RDS-managed secret, read by the AWS Advanced JDBC Wrapper at
       # connection time so a rotation never reaches the application.
       # ARN of the RDS-managed secret, read by the AWS Advanced JDBC Wrapper at
