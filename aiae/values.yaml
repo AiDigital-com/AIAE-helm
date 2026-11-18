@@ -41,6 +41,10 @@ services:
     replicaCount: 1
     minReplicas: 1
     maxReplicas: 1
+    # A single-replica DEV deployment gains nothing from a PodDisruptionBudget,
+    # and minAvailable=1 against 1 replica makes the pod non-evictable, which
+    # blocks EKS Auto Mode from consolidating or recycling the node.
+    podDisruptionBudgetEnabled: false
     config:
       SPRING_PROFILES_ACTIVE: eks
       PORT: "5000"
