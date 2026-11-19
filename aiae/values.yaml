@@ -35,7 +35,7 @@ source:
   # the two above: raising a shared pin would re-sync a live application.
   paicingChartRevision: "01eb335bc0746d1e70cd807146e6cc6f03776057"
   # Updated by gitops-prod-deploy-manual.yml on every production release.
-  paicingVersionsRevision: "d2ee14d684d5c949be1ca3fe73cee0ab126a240d"
+  paicingVersionsRevision: "d196ca45d1d67a96bc513e73591d7688fe975576"
   # Chart revision the Presentation Builder was tested against on DEV. Its own
   # key for the same reason as the ones above: raising a shared pin would
   # re-sync a live application that was never tested against the new chart.
