@@ -55,6 +55,11 @@ secretEnv:
   # it is the whole of the authentication between the two, so a mismatch is a
   # flat 401 from Pacing rather than a degraded mode.
   PACING_ASSERTION_SECRET: PACING_ASSERTION_SECRET
+  # HMAC key for the X-Hub-Assertion header this service signs when it calls
+  # Presentation builder (the campaign Presentations tab and its admin page). The
+  # same value lives in Presentation builder's secret as HUB_ASSERTION_SECRET; a
+  # mismatch is a 401 from Presentation builder.
+  PRESENTATIONS_ASSERTION_SECRET: PRESENTATIONS_ASSERTION_SECRET
 
 secretsManager:
   enabled: true
@@ -71,6 +76,9 @@ secretsManager:
     # mount when one is missing, which would stop this running service rather
     # than merely disable the Pacing integration.
     - PACING_ASSERTION_SECRET
+    # Must exist in the environment's operational-hub secret BEFORE this line is
+    # deployed, for the same reason as PACING_ASSERTION_SECRET above.
+    - PRESENTATIONS_ASSERTION_SECRET
     # Credentials for the PostgreSQL metrics exporter. It is a separate pod and
     # cannot recover from a rotation the way the application can: it builds its
     # connection string once, at startup, from environment variables, and has no

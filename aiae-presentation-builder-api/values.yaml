@@ -69,6 +69,10 @@ secretEnv:
   CLERK_SECRET_KEY: CLERK_SECRET_KEY
   ANTHROPIC_API_KEY: ANTHROPIC_API_KEY
   GOOGLE_SERVICE_ACCOUNT_JSON: GOOGLE_SERVICE_ACCOUNT_JSON
+  # HMAC key the Operational Hub signs its X-Hub-Assertion header with when it
+  # calls this service for a campaign's Presentations tab. The same value lives
+  # in the Hub's secret as PRESENTATIONS_ASSERTION_SECRET.
+  HUB_ASSERTION_SECRET: HUB_ASSERTION_SECRET
 
 secretsManager:
   enabled: true
@@ -81,6 +85,10 @@ secretsManager:
     - CLERK_SECRET_KEY
     - ANTHROPIC_API_KEY
     - GOOGLE_SERVICE_ACCOUNT_JSON
+    # Must exist in the environment's presentation-builder secret BEFORE this
+    # line is deployed: the CSI driver fails the whole volume mount when a listed
+    # key is missing, which would stop the service rather than only the Hub calls.
+    - HUB_ASSERTION_SECRET
 
   # The RDS-managed master user secret: the single owner of the database
   # credentials. AWS rotates it every seven days and that schedule cannot be
