@@ -68,6 +68,9 @@ services:
       # Service listens on 80 and forwards to its 5000. No /api suffix - the Hub
       # adds the /api/v1/... paths itself.
       PRESENTATIONS_BASE_URL: http://aiae-presentation-builder-api.aiae-dev.svc.cluster.local
+      # The Presentations tab and its admin answer from the Hub's in-memory stand-in for
+      # Presentation builder until the real client lands; DEV only, never PROD.
+      PRESENTATIONS_MODE: mock
   aiaeOnboardingApi:
     enabled: true
     imageRepository: 496336474487.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
