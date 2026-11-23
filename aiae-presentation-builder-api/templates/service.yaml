@@ -12,5 +12,12 @@ spec:
       port: {{ .Values.service.port }}
       targetPort: http
       protocol: TCP
+    {{- if gt (int .Values.internalPort) 0 }}
+    # In-cluster only: the Ingress names service.port, never this one.
+    - name: hub-internal
+      port: {{ .Values.service.internalPort }}
+      targetPort: hub-internal
+      protocol: TCP
+    {{- end }}
   selector:
     {{- include "aiae-presentation-builder-api.selectorLabels" . | nindent 4 }}

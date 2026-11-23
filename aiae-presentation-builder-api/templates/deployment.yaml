@@ -34,6 +34,11 @@ spec:
             - name: http
               containerPort: {{ .Values.containerPort }}
               protocol: TCP
+            {{- if gt (int .Values.internalPort) 0 }}
+            - name: hub-internal
+              containerPort: {{ .Values.internalPort }}
+              protocol: TCP
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "aiae-presentation-builder-api.name" . }}-config

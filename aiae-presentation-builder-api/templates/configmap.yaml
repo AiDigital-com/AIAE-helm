@@ -9,6 +9,10 @@ data:
   {{- range $name, $value := .Values.config }}
   {{ $name }}: {{ $value | quote }}
   {{- end }}
+  {{- if gt (int .Values.internalPort) 0 }}
+  # The application opens this port and accepts the Hub's assertion on it only.
+  HUB_INTERNAL_PORT: {{ .Values.internalPort | quote }}
+  {{- end }}
   {{- with .Values.secretsManager.databaseCredentialsSecret }}
   {{- if .awsSecretName }}
   # Read by the eks profile's spring.datasource.hikari.data-source-properties

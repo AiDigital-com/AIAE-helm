@@ -18,6 +18,13 @@ strategy:
 
 containerPort: 5000
 
+# The port the Operational Hub calls on. The application listens here too and
+# accepts the Hub's X-Hub-Assertion on this port only (HUB_INTERNAL_PORT). The
+# Service exposes it inside the cluster as service.internalPort; the Ingress
+# routes to service.port alone, so it is never reachable from the internet and
+# a leaked assertion secret cannot be used from outside. 0 turns it off.
+internalPort: 5001
+
 serviceAccount:
   create: true
   annotations: {}
@@ -25,6 +32,8 @@ serviceAccount:
 service:
   type: ClusterIP
   port: 80
+  # The Hub's PRESENTATIONS_BASE_URL names this port.
+  internalPort: 8081
 
 config:
   SPRING_PROFILES_ACTIVE: eks
