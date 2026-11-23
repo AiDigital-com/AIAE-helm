@@ -30,7 +30,7 @@ source:
   # which the Hub needs once PRESENTATIONS_MODE is http. Verified on DEV first.
   # The key must exist in that AWS secret before this syncs.
   chartRevision: "eaf1cff81aa37be00ab30bea77ad95b90eb3e851"
-  operationalHubVersionsRevision: "087c81da834d53e785a544c3c05a41446c852b3e"
+  operationalHubVersionsRevision: "af734b9a95eb1396c67ebcb6e7ad398ce78bb78d"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
   aiaeOnboardingChartRevision: "df9bd77192b95607d3d6d1557c4f89efde9112f0"
