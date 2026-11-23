@@ -28,7 +28,7 @@ source:
   # Updated by the AIAE-presentation-builder DEV workflow on every deployment.
   # The placeholder below is never read: the child application stays disabled
   # until that workflow has written a real one.
-  presentationBuilderVersionsRevision: "815de9089e230518b8275afa7f7710e0e667e6fd"
+  presentationBuilderVersionsRevision: "04494c9c75a75e3bcea50e7c421f35c1b2900049"
 services:
   operationalHubApi:
     enabled: true
