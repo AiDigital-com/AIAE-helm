@@ -24,7 +24,12 @@ source:
   # Chart revision the Presentation Builder was tested against. Its own key for
   # the same reason as the two above: raising a shared pin would re-sync a live
   # application that was never tested against the new chart.
-  presentationBuilderChartRevision: "eaf1cff81aa37be00ab30bea77ad95b90eb3e851"
+  #
+  # Raised 2026-11-23 from eaf1cff to 42da096: the chart opens the internal Hub
+  # port (5001, Service 8081) and sets HUB_INTERNAL_PORT, so the builder accepts
+  # the Hub's assertion on that port only. Moves together with the Hub's
+  # PRESENTATIONS_BASE_URL below; needs a builder image with 6b38e31.
+  presentationBuilderChartRevision: "42da0968ea922e0913c53378958393d7f5fe6036"
   # Updated by the AIAE-presentation-builder DEV workflow on every deployment.
   # The placeholder below is never read: the child application stays disabled
   # until that workflow has written a real one.
@@ -64,10 +69,11 @@ services:
       # endpoint. The Service listens on 80 and forwards to dash-gate's 3000,
       # which is why no port appears here.
       PACING_BASE_URL: http://aiae-paicing-api.aiae-dev.svc.cluster.local
-      # Presentation builder runs in this namespace too, for the same reasons: the
-      # Service listens on 80 and forwards to its 5000. No /api suffix - the Hub
-      # adds the /api/v1/... paths itself.
-      PRESENTATIONS_BASE_URL: http://aiae-presentation-builder-api.aiae-dev.svc.cluster.local
+      # Presentation builder runs in this namespace too, for the same reasons. The
+      # Hub calls its internal port: Service 8081 -> container 5001, the only port
+      # the builder accepts the Hub's assertion on, and one the Ingress never
+      # publishes. No /api suffix - the Hub adds the /api/v1/... paths itself.
+      PRESENTATIONS_BASE_URL: http://aiae-presentation-builder-api.aiae-dev.svc.cluster.local:8081
       # The Presentations tab and its admin call Presentation builder itself, signing each
       # call with PRESENTATIONS_ASSERTION_SECRET from AIAE-DEV/operational-hub (equal to
       # Presentation builder's HUB_ASSERTION_SECRET). Without that secret the Hub refuses
