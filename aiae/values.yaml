@@ -24,7 +24,12 @@ source:
   # range gives the Liquibase pod its own name label, so the HPA stops counting
   # it once metrics-server is installed (the sync otherwise fails on "missing
   # request for cpu in container liquibase"). Verified on DEV first.
-  chartRevision: "fc628eb90bfee71df559c3c329577bd1aa2ec407"
+  #
+  # Raised 2026-11-23 from fc628eb to eaf1cff: the only chart change in that
+  # range mounts PRESENTATIONS_ASSERTION_SECRET from AIAE-PRD/operational-hub,
+  # which the Hub needs once PRESENTATIONS_MODE is http. Verified on DEV first.
+  # The key must exist in that AWS secret before this syncs.
+  chartRevision: "eaf1cff81aa37be00ab30bea77ad95b90eb3e851"
   operationalHubVersionsRevision: "087c81da834d53e785a544c3c05a41446c852b3e"
   # Chart revision this application was tested against. Separate from
   # chartRevision so Operational Hub's pin is never moved by this application.
@@ -39,7 +44,12 @@ source:
   # Chart revision the Presentation Builder was tested against on DEV. Its own
   # key for the same reason as the ones above: raising a shared pin would
   # re-sync a live application that was never tested against the new chart.
-  presentationBuilderChartRevision: "df9bd77192b95607d3d6d1557c4f89efde9112f0"
+  #
+  # Raised 2026-11-23 from df9bd77 to eaf1cff: the only chart change in that
+  # range mounts HUB_ASSERTION_SECRET from Presentation builder's PROD secret,
+  # the key the Hub signs its Presentations calls with. Verified on DEV first.
+  # The key must exist in that AWS secret before this syncs.
+  presentationBuilderChartRevision: "eaf1cff81aa37be00ab30bea77ad95b90eb3e851"
   # Written by the Presentation Builder's production release. Never read while
   # services.presentationBuilderApi.enabled is false.
   presentationBuilderVersionsRevision: "f6c1c413aadca07355ef21d524e3b55c33885315"
@@ -82,6 +92,16 @@ services:
       # diverge, Pacing answers 401 to every call and the symptom reads as a
       # broken integration rather than as a wrong key.
       PACING_BASE_URL: http://aiae-paicing-api.aiae-prod.svc.cluster.local
+      # Presentation builder runs in this namespace too: the Service listens on
+      # 80 and forwards to its 5000. No /api suffix - the Hub adds the
+      # /api/v1/... paths itself.
+      PRESENTATIONS_BASE_URL: http://aiae-presentation-builder-api.aiae-prod.svc.cluster.local
+      # The Presentations tab and its admin call Presentation builder, signing
+      # each call with PRESENTATIONS_ASSERTION_SECRET from AIAE-PRD/operational-hub;
+      # its twin is HUB_ASSERTION_SECRET in Presentation builder's PROD secret.
+      # The Hub refuses to start in this mode without that secret, and a Hub
+      # image older than 55f44f7 refuses the mode itself.
+      PRESENTATIONS_MODE: http
   aiaeOnboardingApi:
     enabled: true
     imageRepository: 125093118532.dkr.ecr.us-east-1.amazonaws.com/aidigital.aiae-projects/onboarding-platform-application
