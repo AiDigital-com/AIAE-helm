@@ -257,7 +257,7 @@ services:
       # chart by the workbook it links to, so the MPO_* workbook ids must stay
       # DEV's whenever the MPO deck ids are DEV's. EOM_SLIDES_TEMPLATE_ID stays
       # unset so the EOM deck keeps falling back to SLIDES_TEMPLATE_ID.
-      SLIDES_TEMPLATE_ID: 1CqsjTdYUBRxQ6kyPrJ4tBCMPyR-kJoQGvRnbxCTCxCc
+      SLIDES_TEMPLATE_ID: 1g0gGsJBoEGkfHBh1e3AP0p6QKZW7fDjc_MB0MaiTDhA
       SHEETS_TEMPLATE_ID: 1SJLcpNsM1rPUxs4Vb5jza0X7RkMscs6iiekOs0bjf1s
       EOM_SHEETS_TEMPLATE_ID: 1qHQ6bkEWOgbEDujXwxWLKxqgEUSo3K4fVGFfQ7_seTk
       MPO_EOC_SLIDES_TEMPLATE_ID: 1npBFDQJx0-z3wFDqSeGftrzINqfSEvReusx7UmgI8K8
